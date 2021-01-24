@@ -123,7 +123,7 @@ char *extractInMemoryFromFile(char searchFilePath[])
 	char *searchFileData = (char *)malloc(sizeof(char) * (size + 1));
 	if (searchFileData == NULL)
 	{
-		printf("Allocazione fallita\n");
+		perror("malloc");
 		_exit(-2);
 	}
 
@@ -131,7 +131,7 @@ char *extractInMemoryFromFile(char searchFilePath[])
 	FILE *search = fopen(searchFilePath, "r");
 	if (search == NULL)
 	{
-		printf("Errore nell'apertura del file\n");
+		perror("malloc");
 		_exit(-2);
 	}
 
@@ -149,7 +149,7 @@ char *extractInMemoryFromFile(char searchFilePath[])
 char **createMatrixByEscapeCharacter(char string[], char escape[], int *line)
 {
 	// Creo una copia per la variabile intera e creo la matrice
-	int posix = *line;
+	int posix;
 	char **searchDataResult = (char **)malloc(sizeof(char *) * strlen(string));
 	if (searchDataResult == NULL)
 	{
