@@ -63,6 +63,12 @@ void changelog()
 	printf("# 1.0                                                  #\n");
 	printf("# - Initial commit                                     #\n");
 	printf("#                                                      #\n");
+	printf("# 1.1                                                  #\n");
+	printf("# - Risolto un problema con alcuni nomi di directory   #\n");
+	printf("# - Aggiunto un nuovo metodo di richiesta HTTP che     #\n");
+	printf("#   utilizza i cookie per poter accedere al sito       #\n");
+	printf("#   anche in caso di protezione attiva                 #\n");
+	printf("#                                                      #\n");
 	printf("########################################################\n");
 	printf("Premere un tasto per continuare. . .");
 	getch();
@@ -180,4 +186,28 @@ char **createMatrixByEscapeCharacter(char string[], char escape[], int *line)
 	*line = posix;
 
 	return searchDataResult;
+}
+
+char* fixDirectoryName(char* name) {
+	int i, k;
+	char* fix = (char *) malloc(sizeof(char) * strlen(name));
+
+	for (i = 0, k = 0; i < strlen(name); i++) {
+		switch(name[i]) {
+			case '\\':	case '/':	case ':':	case '\'':
+			case '?':	case '"':	case '<':	case '>':
+			case '|':
+				;
+			
+			default:
+				fix[k] = name[i];
+				k++;
+		}
+	}
+
+	printf("\n%s", name);
+	printf("\n%s", fix);
+	getch();
+
+	return fix;
 }

@@ -4,6 +4,7 @@
 #include <stdbool.h>
 #include <ctype.h>
 #include <unistd.h>
+#include <time.h>
 
 #ifdef __unix__
 	// Libreria necessaria per creare un getch() inesistente su Linux
