@@ -162,7 +162,7 @@ void starting()
 	printf("########################################################\n");
 	printf("#                                                      #\n");
 	printf("#                      " ANSI_COLOR_GREEN "Ani-Loader" ANSI_COLOR_RESET "                      #\n");
-	printf("#                      Stable 1.1                      #\n");
+	printf("#                      Stable 1.2                      #\n");
 	printf("#                                                      #\n");
 	printf("#            </>     - " ANSI_COLOR_GREEN "By Alcyon_" ANSI_COLOR_RESET " -     </>            #\n");
 	printf("#                                                      #\n");
@@ -933,7 +933,7 @@ downloadOption *downloadMenu(char *name, int numberOfAnime)
 		// Utilizzo la directory di default se non e' stata modificata
 		// Passo "" in modo che la stringa di return contenga solo il path assoluto della cartella di download
 		if (strlen(option->downloadDirectory) == 1)
-			strcpy(option->downloadDirectory, createPath("/"));
+			strcpy(option->downloadDirectory, createPath(""));
 
 		// Controllo che termini con uno slash o un backslash
 		if (option->downloadDirectory[strlen(option->downloadDirectory)] != '\\' || option->downloadDirectory[strlen(option->downloadDirectory)] != '/')
@@ -987,7 +987,7 @@ void downloadPrepare(animeEpisodeData *lastData, downloadOption *settings, cooki
 			_exit(-2);
 		}
 
-		sprintf(mkdir, "mkdir \"%s%s\"", createPath("/"), fixDirectoryName(name));
+		sprintf(mkdir, "mkdir \"%s%s\"", createPath(""), fixDirectoryName(name));
 		system(mkdir);
 	}
 
@@ -1173,8 +1173,8 @@ void downloadFile(animeEpisodeData *lastData, downloadOption *settings, cookie b
 	}
 	else
 	{
-		strcat(downloadCommandLink, createPath("/"));
-		strcat(downloadCommandLink, name);
+		strcat(downloadCommandLink, createPath(""));
+		strcat(downloadCommandLink, fixDirectoryName(name));
 		strcat(downloadCommandLink, "/");
 	}
 

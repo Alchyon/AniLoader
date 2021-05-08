@@ -69,6 +69,11 @@ void changelog()
 	printf("#   utilizza i cookie per poter accedere al sito       #\n");
 	printf("#   anche in caso di protezione attiva                 #\n");
 	printf("#                                                      #\n");
+	printf("# 1.2                                                  #\n");
+	printf("# - Risolto un problema che faceva crashare il         #\n");
+	printf("#   programma se erano presenti alcuni caratteri       #\n");
+	printf("#   speciali nel nome dell'anime cercato               #\n");
+	printf("#                                                      #\n");
 	printf("########################################################\n");
 	printf("Premere un tasto per continuare. . .");
 	getch();
@@ -197,17 +202,13 @@ char* fixDirectoryName(char* name) {
 			case '\\':	case '/':	case ':':	case '\'':
 			case '?':	case '"':	case '<':	case '>':
 			case '|':
-				;
+				break;
 			
 			default:
 				fix[k] = name[i];
 				k++;
 		}
 	}
-
-	printf("\n%s", name);
-	printf("\n%s", fix);
-	getch();
 
 	return fix;
 }
