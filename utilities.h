@@ -1,7 +1,3 @@
-#ifdef __unix__
-	char getch(void);
-#endif
-
 #ifdef _WIN32
 	char* getlogin();
 #endif

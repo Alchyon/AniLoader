@@ -6,15 +6,6 @@
 #include <unistd.h>
 #include <time.h>
 
-#ifdef __unix__
-	// Libreria necessaria per creare un getch() inesistente su Linux
-	#include <termios.h>
-
-	// Variabili d'ambiente in base all'OS
-	#define clearScreen "clear"
-	#define BPATH "/home/"
-#endif
-
 #ifdef _WIN32
 	// Definisco windows.h e Lmcons.h per trasformare getlogin() in una Windows API
 	#include <windows.h>

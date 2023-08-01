@@ -1,41 +1,6 @@
 #include "libraries.h"
 #include "utilities.h"
 
-// For custom getch() only on Linux OS
-#ifdef __unix__
-	char getch(void)
-	{
-		char buf = 0;
-		struct termios old = {0};
-		fflush(stdout);
-
-		if (tcgetattr(0, &old) < 0)
-			perror("tcsetattr()");
-
-		old.c_lflag &= ~ICANON;
-		old.c_lflag &= ~ECHO;
-		old.c_cc[VMIN] = 1;
-		old.c_cc[VTIME] = 0;
-
-		if (tcsetattr(0, TCSANOW, &old) < 0)
-			perror("tcsetattr ICANON");
-
-		if (read(0, &buf, 1) < 0)
-			perror("read()");
-
-		old.c_lflag |= ICANON;
-		old.c_lflag |= ECHO;
-
-		if (tcsetattr(0, TCSADRAIN, &old) < 0)
-			perror("tcsetattr ~ICANON");
-
-		//	Uncomment for getche()
-		//	printf("%c\n", buf);
-
-		return buf;
-	}
-#endif
-
 // Trasformo getlogin() della unistd.h usata in __unix__ in una Windows API ( GetUserName(char *, DWORD *) )
 #ifdef _WIN32
 	char *getlogin()
@@ -73,6 +38,12 @@ void changelog()
 	printf("# - Risolto un problema che faceva crashare il         #\n");
 	printf("#   programma se erano presenti alcuni caratteri       #\n");
 	printf("#   speciali nel nome dell'anime cercato               #\n");
+	printf("#                                                      #\n");
+	printf("# 1.4.1                                                #\n");
+	printf("# - Link fixed                                         #\n");
+	printf("#                                                      #\n");
+	printf("# 1.4.2                                                #\n");
+	printf("# - Cookie fixed                                       #\n");
 	printf("#                                                      #\n");
 	printf("########################################################\n");
 	printf("Premere un tasto per continuare. . .");
@@ -116,11 +87,7 @@ char *createPath(char string[])
 	}
 
 	// Creazione path in base all'OS
-	#ifdef __unix__
-		sprintf(path, BPATH "%s/Scaricati/%s", user, string);
-	#elif _WIN32
-		sprintf(path, BPATH "%s/Downloads/%s", user, string);
-	#endif
+	sprintf(path, BPATH "%s/Downloads/%s", user, string);
 
 	return path;
 }

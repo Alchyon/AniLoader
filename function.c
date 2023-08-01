@@ -10,9 +10,9 @@
 
 int main()
 {
-	#if !_WIN32_WINNT_WIN10 && !__unix__
+	#if !_WIN32_WINNT_WIN10
 		printf("Programma non compatibile con il sistema operativo.\n");
-		printf("Supportati: Windows 10, Linux\n");
+		printf("Supportati: Windows 10\n");
 		_exit(-3);
 	#endif
 
@@ -57,7 +57,7 @@ int main()
 		if (divFound == -1)
 		{
 			// Se i cookie non sono abilitati e la stringa li contiene, li abilito, altrimenti errore nella ricerca
-			if (biscottino.enable == 0 && strstr(searchDataResult[0], "AWCookietest") && line == 1) {
+			if (biscottino.enable == 0 && strstr(searchDataResult[0], "SecurityAW") && line == 1) {
 				fflush(stdin);
 				printf(ANSI_COLOR_RED "Errore, accesso al sito concesso solo tramite cookie!" ANSI_COLOR_RESET "\n");
 				retrieveCookie(&biscottino, searchDataResult, line);
@@ -162,7 +162,7 @@ void starting()
 	printf("########################################################\n");
 	printf("#                                                      #\n");
 	printf("#                      " ANSI_COLOR_GREEN "Ani-Loader" ANSI_COLOR_RESET "                      #\n");
-	printf("#                      Stable 1.2                      #\n");
+	printf("#                     Stable 1.4.2                     #\n");
 	printf("#                                                      #\n");
 	printf("#            </>     - " ANSI_COLOR_GREEN "By Alcyon_" ANSI_COLOR_RESET " -     </>            #\n");
 	printf("#                                                      #\n");
@@ -209,8 +209,8 @@ void retrieveCookie(cookie* biscottino, char** searchDataResult, int line) {
 	// Splitto la stringa con "= "
 	char* token = strtok(searchDataResult[0], "= ");
 	while (token != NULL) {
-		// La riga successiva ad "AWCookietest" contiene il token necessario
-		if (strstr(token, "AWCookietest")) {
+		// La riga successiva ad "SecurityAW" contiene il token necessario
+		if (strstr(token, "SecurityAW")) {
 			token = strtok(NULL, "= ");
 			strcpy(biscottino->code, token);
 			break;
@@ -263,9 +263,9 @@ void searchAnimeByName(cookie biscottino, char* name)
 	
 	// Controllo per i cookie
 	if (!biscottino.enable)
-		sprintf(command, "curl -s \"https://www.animeworld.tv/search?keyword=%s\" > \"%s\"", name, createPath("search.txt"));
+		sprintf(command, "curl -s \"https://www.animeworld.so/search?keyword=%s\" > \"%s\"", name, createPath("search.txt"));
 	else
-		sprintf(command, "curl -s \"https://www.animeworld.tv/search?keyword=%s\" -b \"AWCookietest=%s\"> \"%s\"", name, biscottino.code, createPath("search.txt"));
+		sprintf(command, "curl -s \"https://www.animeworld.so/search?keyword=%s\" -b \"SecurityAW=%s\"> \"%s\"", name, biscottino.code, createPath("search.txt"));
 
 	system(command);
 	free(command);
@@ -525,7 +525,7 @@ bool printFindAnime(animeSearchData *baseData)
 		// Se gli anime sono esattamente 40 (ricerca poco precisa)
 		if (baseData->numberOfAnime == 40)
 		{
-			// Piu' di una pagina disponibile, MFU ?
+			// Piu' di una pagina disponibile, update futuro ?
 			printf("\n");
 			printf("E' possibile che alcuni anime non vengano mostrati.\n");
 			printf("La prossima volta provare con una ricerca piu' precisa!\n");
@@ -577,9 +577,9 @@ char *downloadRedirectPage(animeSearchData *baseData, cookie biscottino, int sel
 
 	// Controllo cookie
 	if (!biscottino.enable)
-		sprintf(command, "curl -s \"https://www.animeworld.tv%s\" > \"%s\"", baseData->findAnimeLink[selected], createPath("redirect.txt"));
+		sprintf(command, "curl -s \"https://www.animeworld.so%s\" > \"%s\"", baseData->findAnimeLink[selected], createPath("redirect.txt"));
 	else
-		sprintf(command, "curl -s \"https://www.animeworld.tv%s\" -b \"AWCookietest=%s\"> \"%s\"", baseData->findAnimeLink[selected], biscottino.code, createPath("redirect.txt"));
+		sprintf(command, "curl -s \"https://www.animeworld.so%s\" -b \"SecurityAW=%s\"> \"%s\"", baseData->findAnimeLink[selected], biscottino.code, createPath("redirect.txt"));
 
 	system(command);
 	free(command);
@@ -617,9 +617,9 @@ char *downloadCorrectPage(cookie biscottino, char *pageDirectLink)
 
 	// Controllo cookie
 	if (!biscottino.enable)
-		sprintf(command, "curl -s \"https://www.animeworld.tv%s\" > \"%s\"", pageDirectLink, createPath("page.txt"));
+		sprintf(command, "curl -s \"https://www.animeworld.so%s\" > \"%s\"", pageDirectLink, createPath("page.txt"));
 	else
-		sprintf(command, "curl -s \"https://www.animeworld.tv%s\" -b \"AWCookietest=%s\"> \"%s\"", pageDirectLink, biscottino.code, createPath("page.txt"));
+		sprintf(command, "curl -s \"https://www.animeworld.so%s\" -b \"SecurityAW=%s\"> \"%s\"", pageDirectLink, biscottino.code, createPath("page.txt"));
 
 	system(command);
 	free(command);
@@ -784,7 +784,7 @@ downloadOption *downloadMenu(char *name, int numberOfAnime)
 		break;
 
 	case '2':
-		// Range X->Y di episodi
+		// Range X -> Y di episodi
 		option->option = 2;
 		do
 		{
@@ -877,7 +877,7 @@ downloadOption *downloadMenu(char *name, int numberOfAnime)
 			strcpy(option->nameEpisode, "Episodio");
 		else
 		{
-			// Per evitare un getchar() successivo che crea problemi e trancia una lettera
+			// Per evitare un getchar() successivo che crea problemi e trancia una lettera [Linux]
 			option->nameEpisodeChange = true;
 
 			// Correggo eventuali caratteri speciali non ammessi nei nomi ed elimino lo '\n' finale
@@ -921,12 +921,6 @@ downloadOption *downloadMenu(char *name, int numberOfAnime)
 	{
 		printf("\nInserite il percorso completo della nuova directory [massimo 200 caratteri]: " ANSI_COLOR_YELLOW);
 
-		// Leggo 200 caratteri (getchar() serve per annullare un '\n' residuo in caso si sia immesso il nome su Linux)
-		#ifdef __unix__
-				if (!option->nameEpisodeChange)
-					getchar();
-		#endif
-
 		fgets(option->downloadDirectory, 200, stdin);
 		printf(ANSI_COLOR_RESET);
 
@@ -968,12 +962,6 @@ void downloadPrepare(animeEpisodeData *lastData, downloadOption *settings, cooki
 		}
 
 		strcpy(mkdir, "mkdir \"");
-
-		#ifdef __unix__
-				if (settings->downloadDirectory[0] != '/' || settings->downloadDirectory[0] != '\\')
-					strcat(mkdir, "/");
-		#endif
-
 		strcat(mkdir, settings->downloadDirectory);
 		strcat(mkdir, "\"");
 
@@ -1080,9 +1068,9 @@ char *getDirectEpisodeDownloadLink(cookie biscottino, char *pageDirectLink, char
 
 	// Controllo cookie
 	if (!biscottino.enable)
-		sprintf(downloadCommand, "curl -s \"https://www.animeworld.tv%s%s\" > \"%s", pageDirectLink, extension, createPath("ep.txt\""));
+		sprintf(downloadCommand, "curl -s \"https://www.animeworld.so%s%s\" > \"%s", pageDirectLink, extension, createPath("ep.txt\""));
 	else
-		sprintf(downloadCommand, "curl -s \"https://www.animeworld.tv%s%s\" -b \"AWCookietest=%s\"> \"%s", pageDirectLink, extension, biscottino.code, createPath("ep.txt\""));
+		sprintf(downloadCommand, "curl -s \"https://www.animeworld.so%s%s\" -b \"SecurityAW=%s\"> \"%s", pageDirectLink, extension, biscottino.code, createPath("ep.txt\""));
 
 	// Scarico il file
 	system(downloadCommand);
@@ -1159,18 +1147,11 @@ void downloadFile(animeEpisodeData *lastData, downloadOption *settings, cookie b
 	if (!biscottino.enable)
 		sprintf(downloadCommandLink, "curl -L -# \"%s\" > \"", directDownloadLink);
 	else
-		sprintf(downloadCommandLink, "curl -L -# \"%s\" -b \"AWCookietest=%s\"> \"", directDownloadLink, biscottino.code);
+		sprintf(downloadCommandLink, "curl -L -# \"%s\" -b \"SecurityAW=%s\"> \"", directDownloadLink, biscottino.code);
 
 	// Controllo se la directory e' stata modificata
 	if (strlen(settings->downloadDirectory) != 0)
-	{
-		#ifdef __unix__
-				if (settings->downloadDirectory[0] != '/' || settings->downloadDirectory[0] != '\\')
-					strcat(downloadCommandLink, "/");
-		#endif
-
 		strcat(downloadCommandLink, settings->downloadDirectory);
-	}
 	else
 	{
 		strcat(downloadCommandLink, createPath(""));
