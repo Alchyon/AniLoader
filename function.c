@@ -25,13 +25,13 @@ int main()
 	optionMenu();
 
 	// Inserisco il nome da cercare, procedura separata per gestire i cookie
-	char* name = insertName();
-	
+	char *name = insertName();
+
 	// Variabili usate nella parte sottostante per ottenere i cookie se necessari, dichiarate qui per questioni di scope
-	char* path;
-	char* searchData;
+	char *path;
+	char *searchData;
 	int line = 0;
-	char** searchDataResult;
+	char **searchDataResult;
 	int divFound = 0;
 
 	// Cookie part

@@ -6,11 +6,14 @@
 	char *getlogin()
 	{
 		DWORD us = UNLEN + 1;
-		char *username = (char *)malloc(sizeof(char) * 30);
+		char *username = (char *)malloc(sizeof(char) * 65);
 		if (username == NULL) {
 			perror("malloc");
 			_exit(-2);
 		}
+
+		// Mi assicuro che lo username abbia un fine stringa
+		username[65] = '\0';
 
 		GetUserName(username, &us);
 		return username;
