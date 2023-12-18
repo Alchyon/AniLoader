@@ -12,7 +12,8 @@ int main()
 {
 	#if !_WIN32_WINNT_WIN10
 		printf("Programma non compatibile con il sistema operativo.\n");
-		printf("Supportati: Windows 10\n");
+		printf("Supportati: Windows 10, Windows 11.\n");
+		system("pause");
 		_exit(-3);
 	#endif
 
@@ -60,7 +61,7 @@ int main()
 			if (biscottino.enable == 0 && strstr(searchDataResult[0], "SecurityAW") && line == 1) {
 				fflush(stdin);
 				printf(ANSI_COLOR_RED "Errore, accesso al sito concesso solo tramite cookie!" ANSI_COLOR_RESET "\n");
-				retrieveCookie(&biscottino, searchDataResult, line);
+				retrieveCookie(&biscottino, searchDataResult);
 
 				printf(ANSI_COLOR_GREEN "Cookie creato, nuova richiesta in corso..." ANSI_COLOR_RESET "\n");
 				free(searchDataResult);
@@ -162,7 +163,7 @@ void starting()
 	printf("########################################################\n");
 	printf("#                                                      #\n");
 	printf("#                      " ANSI_COLOR_GREEN "Ani-Loader" ANSI_COLOR_RESET "                      #\n");
-	printf("#                     Stable 1.4.2                     #\n");
+	printf("#                        v. 1.5                        #\n");
 	printf("#                                                      #\n");
 	printf("#            </>     - " ANSI_COLOR_GREEN "By Alcyon_" ANSI_COLOR_RESET " -     </>            #\n");
 	printf("#                                                      #\n");
@@ -177,7 +178,7 @@ void optionMenu()
 	printf("########################################################\n");
 	printf("#                                                      #\n");
 	printf("#" ANSI_COLOR_YELLOW "  INVIO" ANSI_COLOR_RESET " -- > Cerca un anime                           #\n");
-	printf("#" ANSI_COLOR_YELLOW "  1" ANSI_COLOR_RESET " -- > Controlla l'ultimo changelog                 #\n");
+	printf("#" ANSI_COLOR_YELLOW "  1" ANSI_COLOR_RESET " -- > Controlla l'ultimo changelog riassuntivo     #\n");
 	printf("#" ANSI_COLOR_YELLOW "  QUALSIASI ALTRO TASTO" ANSI_COLOR_RESET " -- > Esci dal programma       #\n");
 	printf("#                                                      #\n");
 	printf("########################################################\n");
@@ -202,7 +203,7 @@ void optionMenu()
 	}
 }
 
-void retrieveCookie(cookie* biscottino, char** searchDataResult, int line) {
+void retrieveCookie(cookie* biscottino, char** searchDataResult) {
 	// Imposto l'uso dei cookie
 	biscottino->enable = 1;
 
@@ -220,9 +221,9 @@ void retrieveCookie(cookie* biscottino, char** searchDataResult, int line) {
 	}
 }
 
-char* insertName() {
+char *insertName() {
 	// Allocazione memoria per il nome
-	char *name = (char *)malloc(sizeof(char) * 101);
+	char *name = (char *) malloc(sizeof(char) * 101);
 	if (name == NULL) {
 		perror("malloc");
 		_exit(-2);
@@ -243,7 +244,7 @@ char* insertName() {
 	fflush(stdin);
 
 	// Essendo una richiesta HTTP, il nome non puo' contenere spazi che verranno quindi rimpiazzati dal segno '+'
-	for (int i = 0; i < strlen(name); i++)
+	for (unsigned int i = 0; i < strlen(name); i++)
 	{
 		if (name[i] == ' ')
 			name[i] = '+';
@@ -255,12 +256,12 @@ char* insertName() {
 void searchAnimeByName(cookie biscottino, char* name)
 {
 	// Creazione comando
-	char *command = (char *)malloc(sizeof(char) * (strlen(name) + strlen(biscottino.code) + 100));
+	char *command = (char *) malloc(sizeof(char) * (strlen(name) + strlen(biscottino.code) + 100));
 	if (command == NULL) {
 		perror("malloc");
 		_exit(-2);
 	}
-	
+
 	// Controllo per i cookie
 	if (!biscottino.enable)
 		sprintf(command, "curl -s \"https://www.animeworld.so/search?keyword=%s\" > \"%s\"", name, createPath("search.txt"));
@@ -288,28 +289,28 @@ int searchAnimeDiv(char **searchDataResult, int line)
 animeSearchData *extractAnimeName(char **searchDataResult, int line, int divFound)
 {
 	int posUno = 0, posDue = 0;
-	char *extract = (char *)malloc(sizeof(char));
+	char *extract = (char *) malloc(sizeof(char));
 	if (extract == NULL) {
 		perror("malloc");
 		_exit(-2);
 	}
 
 	// Allocazione struttura e puntatori interni, controllo errori
-	animeSearchData *asd = (animeSearchData *)malloc(sizeof(animeSearchData));
+	animeSearchData *asd = (animeSearchData *) malloc(sizeof(animeSearchData));
 	if (asd == NULL)
 	{
 		perror("malloc");
 		_exit(-2);
 	}
 
-	asd->findAnimeLink = (char **)malloc(sizeof(char *) * 40);
+	asd->findAnimeLink = (char **) malloc(sizeof(char *) * 40);
 	if (asd->findAnimeLink == NULL)
 	{
 		perror("malloc");
 		_exit(-2);
 	}
 
-	asd->correctAnimeName = (char **)malloc(sizeof(char *) * 40);
+	asd->correctAnimeName = (char **) malloc(sizeof(char *) * 40);
 	if (asd->correctAnimeName == NULL)
 	{
 		perror("malloc");
@@ -327,7 +328,7 @@ animeSearchData *extractAnimeName(char **searchDataResult, int line, int divFoun
 		if (poster != NULL)
 		{
 			// Creo una variabile di appoggio dinamica
-			extract = (char *)malloc(sizeof(char) * (strlen(searchDataResult[i]) + 1));
+			extract = (char *) malloc(sizeof(char) * (strlen(searchDataResult[i]) + 1));
 			if (extract == NULL) {
 				perror("malloc");
 				_exit(-2);
@@ -335,7 +336,7 @@ animeSearchData *extractAnimeName(char **searchDataResult, int line, int divFoun
 
 			strcpy(extract, searchDataResult[i]);
 
-			for (int k = 0; k < strlen(extract); k++)
+			for (unsigned int k = 0; k < strlen(extract); k++)
 			{
 				// Ottengo il punto di inizio e il punto di fine del link
 				if (posUno == 0 && extract[k] == '\"')
@@ -348,8 +349,9 @@ animeSearchData *extractAnimeName(char **searchDataResult, int line, int divFoun
 					posDue = k;
 			}
 
-			// Allocazione variabile
-			asd->findAnimeLink[asd->numberOfAnime] = (char *)malloc(sizeof(char) * (posDue - posUno + 1));
+			// Allocazione variabile, di base sarebbe un +1 ma crea errori di memoria, con un +10 si dimostra valido, +20 per sicurezza
+			// Visto che al massimo si possono salvare 40 anime, lo "spreco" non e' maggiore di 80 byte.
+			asd->findAnimeLink[asd->numberOfAnime] = (char *) malloc(sizeof(char) * (posDue - posUno + 20));
 			if (asd->findAnimeLink[asd->numberOfAnime] == NULL)
 			{
 				perror("malloc");
@@ -357,8 +359,10 @@ animeSearchData *extractAnimeName(char **searchDataResult, int line, int divFoun
 			}
 
 			// Estrazione link
-			for (int k = 0; posUno < posDue; k++, posUno++)
+			for (int k = 0; posUno < posDue; k++, posUno++) {
 				asd->findAnimeLink[asd->numberOfAnime][k] = extract[posUno];
+				asd->findAnimeLink[asd->numberOfAnime][k + 1] = '\0';
+			}
 
 			// Resetto le posizioni
 			posUno = 0;
@@ -369,10 +373,10 @@ animeSearchData *extractAnimeName(char **searchDataResult, int line, int divFoun
 			if (alter != NULL)
 			{
 				// Uso sempre la variabile di appoggio
-				extract = (char *)realloc(extract, sizeof(char) * (strlen(searchDataResult[i + 1]) + 1));
+				extract = (char *) realloc(extract, sizeof(char) * (strlen(searchDataResult[i + 1]) + 1));
 				strcpy(extract, alter);
 
-				for (int k = 0; k < strlen(extract); k++)
+				for (unsigned int k = 0; k < strlen(extract); k++)
 				{
 					// Ottengo il punto di inizio e la fine del nome dell'anime
 					if (posUno == 0 && extract[k] == '\"')
@@ -386,7 +390,7 @@ animeSearchData *extractAnimeName(char **searchDataResult, int line, int divFoun
 				}
 
 				// Allocazione variabile
-				asd->correctAnimeName[asd->numberOfAnime] = (char *)malloc(sizeof(char) * (posDue - posUno + 1));
+				asd->correctAnimeName[asd->numberOfAnime] = (char *) malloc(sizeof(char) * (posDue - posUno + 1));
 				if (asd->correctAnimeName[asd->numberOfAnime] == NULL)
 				{
 					perror("malloc");
@@ -419,7 +423,7 @@ animeSearchData *extractAnimeName(char **searchDataResult, int line, int divFoun
 void convertAnimeName(animeSearchData *baseData)
 {
 	// Dichiarazione puntatore
-	char *toConvert = (char *)malloc(sizeof(char));
+	char *toConvert = (char *) malloc(sizeof(char));
 	if (toConvert == NULL) {
 		perror("malloc");
 		_exit(-2);
@@ -428,7 +432,7 @@ void convertAnimeName(animeSearchData *baseData)
 	for (int count = 0; count < baseData->numberOfAnime; count++)
 	{
 		// Alloco la giusta quantita' con realloc()
-		toConvert = (char *)realloc(toConvert, strlen(baseData->correctAnimeName[count]));
+		toConvert = (char *) realloc(toConvert, sizeof(char) * (strlen(baseData->correctAnimeName[count]) + 10));
 		strcpy(toConvert, "");
 
 		/* &quote; = " */
@@ -485,6 +489,13 @@ void convertAnimeName(animeSearchData *baseData)
 			}
 		}
 
+		// TO-DO, Unicode into ASCII
+		/* ÔÇÖ = ' */
+		/* ÔÇ£ = “ */
+		/* ÔÇØ = ” */
+		/* ÔÇô = - */
+		/* ├╣  = ù */
+
 		// Copy if MODIFIED
 		if (strlen(toConvert) > 0)
 			strcpy(baseData->correctAnimeName[count], toConvert);
@@ -501,9 +512,9 @@ bool printFindAnime(animeSearchData *baseData)
 	{
 		printf(ANSI_COLOR_RED "Errore: nessun anime trovato..." ANSI_COLOR_RESET "\n\n");
 		printf("Questo puo' accadere quando, all'inserimento del nome, MANCANO o SONO PRESENTI caratteri aggiuntivi\n");
-		printf("al nome dell'anime, un semplice spazio o la mancanza di trattini, punti o virgole possono creare questo errore.\n");
-		printf("Riprovare inserendo meno caratteri o il nome in giapponese, se nonostante cio' non dovesse risolvere\n");
-		printf("significa che sul sito non esiste quello che cercava.\n");
+		printf("come spazi, trattini, punti o virgole. Si consiglia di riprovare inserendo meno caratteri o eventualmente\n");
+		printf("usare il nome in giapponese, se nonostante cio' non verranno trovati risultati, allora significa che l'anime\n");
+		printf("non e' presente o e' codificato in un formato sconosciuto.\n");
 		printf(ANSI_COLOR_YELLOW "Premere un tasto per riavviare il programma . . ." ANSI_COLOR_RESET);
 		getch();
 
@@ -569,7 +580,7 @@ int selectAnime(animeSearchData *baseData)
 
 char *downloadRedirectPage(animeSearchData *baseData, cookie biscottino, int selected)
 {
-	char *command = (char *)malloc(sizeof(char) * (strlen(baseData->findAnimeLink[selected]) + strlen(biscottino.code) + 200));
+	char *command = (char *) malloc(sizeof(char) * (strlen(baseData->findAnimeLink[selected]) + strlen(biscottino.code) + 300));
 	if (command == NULL) {
 		perror("malloc");
 		_exit(-2);
@@ -589,7 +600,7 @@ char *downloadRedirectPage(animeSearchData *baseData, cookie biscottino, int sel
 
 char *getPageLink(char *redirectContent)
 {
-	char *momentCopy = (char *)malloc(sizeof(char) * (strlen(redirectContent) + 1));
+	char *momentCopy = (char *) malloc(sizeof(char) * (strlen(redirectContent) + 1));
 	if (momentCopy == NULL) {
 		perror("malloc");
 		_exit(-2);
@@ -609,7 +620,7 @@ char *getPageLink(char *redirectContent)
 
 char *downloadCorrectPage(cookie biscottino, char *pageDirectLink)
 {
-	char *command = (char *)malloc(sizeof(char) * (strlen(pageDirectLink) + 250));
+	char *command = (char *) malloc(sizeof(char) * (strlen(pageDirectLink) + 300));
 	if (command == NULL) {
 		perror("malloc");
 		_exit(-2);
@@ -630,21 +641,23 @@ char *downloadCorrectPage(cookie biscottino, char *pageDirectLink)
 animeEpisodeData *getEpisodeExtension(char **pageDataResult, int line)
 {
 	bool noData = true;
-	char *moment = (char *)malloc(sizeof(char));
+	char *moment = (char *) malloc(sizeof(char));
 	if (moment == NULL) {
 		perror("malloc");
 		_exit(-2);
 	}
 
 	// Dichiaro e alloco la struttura che conterra' i dati calcolati dalla funzione
-	animeEpisodeData *episodeData = (animeEpisodeData *)malloc(sizeof(animeEpisodeData));
+	animeEpisodeData *episodeData = (animeEpisodeData *) malloc(sizeof(animeEpisodeData));
 	if (episodeData == NULL)
 	{
 		perror("malloc");
 		_exit(2);
 	}
 
-	episodeData->animeEpisodeExtension = (char **)malloc(sizeof(char *) * 600);
+	// Fucking OnePiece and Detective Conan that has 1000+ episode!!!
+	// 18/12/2023, record: 1137
+	episodeData->animeEpisodeExtension = (char **) malloc(sizeof(char *) * 1500);
 	if (episodeData->animeEpisodeExtension == NULL)
 	{
 		perror("malloc");
@@ -678,7 +691,7 @@ animeEpisodeData *getEpisodeExtension(char **pageDataResult, int line)
 					{
 						// != NULL > episode
 						// Rialloco lo spazio necessario a moment per contenere i dati
-						moment = (char *)realloc(moment, sizeof(char) * (strlen(pageDataResult[i]) + 1));
+						moment = (char *) realloc(moment, sizeof(char) * (strlen(pageDataResult[i]) + 1));
 						strcpy(moment, pageDataResult[i]);
 
 						// Forzo lo script a raggiungere la parte interessata dalle " (virgolette)
@@ -691,7 +704,7 @@ animeEpisodeData *getEpisodeExtension(char **pageDataResult, int line)
 
 						// Alloco l'array che conterra' l'estensione
 						// Ottengo l'ID dal tag "data-id"
-						episodeData->animeEpisodeExtension[episodeData->numberOfEpisode] = (char *)malloc(sizeof(char) * (strlen(token) + 1));
+						episodeData->animeEpisodeExtension[episodeData->numberOfEpisode] = (char *) malloc(sizeof(char) * (strlen(token) + 10));
 						if (episodeData->animeEpisodeExtension[episodeData->numberOfEpisode] == NULL) {
 							perror("malloc");
 							_exit(-2);
@@ -740,7 +753,7 @@ animeEpisodeData *getEpisodeExtension(char **pageDataResult, int line)
 downloadOption *downloadMenu(char *name, int numberOfAnime)
 {
 	// Allocazione struttura per valore di return
-	downloadOption *option = (downloadOption *)malloc(sizeof(downloadOption));
+	downloadOption *option = (downloadOption *) malloc(sizeof(downloadOption));
 	if (option == NULL) {
 		perror("malloc");
 		_exit(-2);
@@ -840,13 +853,13 @@ downloadOption *downloadMenu(char *name, int numberOfAnime)
 	}
 
 	// Alloco il puntatore del nome
-	option->nameEpisode = (char *)malloc(sizeof(char) * 101);
+	option->nameEpisode = (char *) malloc(sizeof(char) * 101);
 	if (option->nameEpisode == NULL) {
 		perror("malloc");
 		_exit(-2);
 	}
 	// Alloco il puntatore della directory
-	option->downloadDirectory = (char *)malloc(sizeof(char) * 201);
+	option->downloadDirectory = (char *) malloc(sizeof(char) * 501);
 	if (option->downloadDirectory == NULL) {
 		perror("malloc");
 		_exit(-2);
@@ -871,6 +884,7 @@ downloadOption *downloadMenu(char *name, int numberOfAnime)
 		printf(ANSI_COLOR_YELLOW);
 		fgets(option->nameEpisode, 100, stdin);
 		printf(ANSI_COLOR_RESET);
+		fflush(stdin);
 
 		// Utilizzo "Episodio" se non e' stato inserito un nome
 		if (strlen(option->nameEpisode) == 1)
@@ -882,8 +896,9 @@ downloadOption *downloadMenu(char *name, int numberOfAnime)
 
 			// Correggo eventuali caratteri speciali non ammessi nei nomi ed elimino lo '\n' finale
 			option->nameEpisode[strlen(option->nameEpisode) - 1] = '\0';
-			for (int i = 0; i < strlen(option->nameEpisode); i++)
+			for (unsigned int i = 0; i < strlen(option->nameEpisode); i++)
 			{
+				// TO-DO optimize into function FixDirectoryName() into FixDataName() or FixFileName()
 				if (option->nameEpisode[i] == '\\' ||
 					option->nameEpisode[i] == '/' ||
 					option->nameEpisode[i] == ':' ||
@@ -919,19 +934,38 @@ downloadOption *downloadMenu(char *name, int numberOfAnime)
 	// Modifica directory confermata
 	if (choice == 'Y')
 	{
-		printf("\nInserite il percorso completo della nuova directory [massimo 200 caratteri]: " ANSI_COLOR_YELLOW);
+		printf("\nInserite il percorso completo della nuova directory [massimo 400 caratteri]: " ANSI_COLOR_YELLOW);
 
-		fgets(option->downloadDirectory, 200, stdin);
+		fgets(option->downloadDirectory, 400, stdin);
 		printf(ANSI_COLOR_RESET);
+		fflush(stdin);
 
-		// Utilizzo la directory di default se non e' stata modificata
+		// Utilizzo la directory di default se non e' stata modificata, premuto '\n'
 		// Passo "" in modo che la stringa di return contenga solo il path assoluto della cartella di download
 		if (strlen(option->downloadDirectory) == 1)
-			strcpy(option->downloadDirectory, createPath(""));
+			option->downloadDirectory[0] = '\0';
 
-		// Controllo che termini con uno slash o un backslash
-		if (option->downloadDirectory[strlen(option->downloadDirectory)] != '\\' || option->downloadDirectory[strlen(option->downloadDirectory)] != '/')
+			// Controllo che termini con uno slash o un backslash e controllo la presenza di caratteri non ammessi, in questo caso ripristino quella di default, piu' pratico
+			// del chiedere un nuovo inserimento, verra' implementato in un futuro
+			// TO-DO
+		else if (option->downloadDirectory[strlen(option->downloadDirectory)] != '\\' && option->downloadDirectory[strlen(option->downloadDirectory)] != '/') {
 			option->downloadDirectory[strlen(option->downloadDirectory) - 1] = '/';
+
+			for (unsigned int i = 0; i < strlen(option->downloadDirectory) && choice == 'Y'; i++)
+				switch (option->downloadDirectory[i]) {
+					case ':':	case '*':	case '?':	case '\"':
+					case '<':	case '>':	case '|':	case '{':
+					case '}':	case '~':
+					
+					printf(ANSI_COLOR_RED "\nErrore!\n" ANSI_COLOR_RESET);
+					printf("Il nome della directory contiene dei caratteri non ammessi, ripristino la cartella di default!\n");
+					system("pause");
+
+					option->downloadDirectory[0] = '\0';
+					choice = 'E';
+					break;
+				}
+		}
 	}
 	else
 		option->downloadDirectory[0] = '\0';
@@ -943,43 +977,28 @@ downloadOption *downloadMenu(char *name, int numberOfAnime)
 void downloadPrepare(animeEpisodeData *lastData, downloadOption *settings, cookie biscottino, char *pageDirectLink, char *name)
 {
 	// Correggo il directLink eliminando l'estensione
-	int cut;
-	for (int i = 0; i < strlen(pageDirectLink); i++)
-	{
-		if (pageDirectLink[i] == '/')
-			cut = i;
-	}
-	pageDirectLink[cut + 1] = '\0';
+	int i;
+	for (i = strlen(pageDirectLink); pageDirectLink[i] != '/'; i--);
+	pageDirectLink[i + 1] = '\0';
 
 	// Controllo se la directory e' stata modificata, in caso la creo
-	char *mkdir;
-	if (strlen(settings->downloadDirectory) != 0)
-	{
-		mkdir = (char *)malloc(sizeof(char) * (strlen(settings->downloadDirectory) + 100));
-		if (mkdir == NULL) {
+	char *mkdir = (char *) malloc(sizeof(char) * (strlen(settings->downloadDirectory) + strlen(createPath("")) + strlen(name) + 100));
+	if (mkdir == NULL) {
 			perror("malloc");
 			_exit(-2);
-		}
-
+	}
+	
+	if (strlen(settings->downloadDirectory) != 0)
+	{
 		strcpy(mkdir, "mkdir \"");
 		strcat(mkdir, settings->downloadDirectory);
 		strcat(mkdir, "\"");
-
-		system(mkdir);
 	}
 	else
-	{
-		mkdir = (char *)malloc(sizeof(char) * 200);
-		if (mkdir == NULL) {
-			perror("malloc");
-			_exit(-2);
-		}
-
 		sprintf(mkdir, "mkdir \"%s%s\"", createPath(""), fixDirectoryName(name));
-		system(mkdir);
-	}
-
-	// Dealloco mkdir
+	
+	// Eseguo e dealloco mkdir
+	system(mkdir);
 	free(mkdir);
 
 	// Inizio switch per processo download
@@ -1005,7 +1024,7 @@ void downloadPrepare(animeEpisodeData *lastData, downloadOption *settings, cooki
 
 			// Chiamo la funzione che gestisce la creazione del comando finale da eseguire
 			if (strcmp(directDownloadLink, "ERROR"))
-				downloadFile(lastData, settings, biscottino, pageDirectLink, directDownloadLink, name, i);
+				downloadFile(lastData, settings, biscottino, directDownloadLink, name, i);
 			else
 				printf(ANSI_COLOR_RED "Si e' verificato un errore per l'episodio %d" ANSI_COLOR_RESET "\n", i + 1);
 
@@ -1024,7 +1043,7 @@ void downloadPrepare(animeEpisodeData *lastData, downloadOption *settings, cooki
 
 		// Chiamo la funzione che gestisce la creazione del comando finale da eseguire
 		if (strcmp(directDownloadLink, "ERROR"))
-			downloadFile(lastData, settings, biscottino, pageDirectLink, directDownloadLink, name, settings->singleEpisode);
+			downloadFile(lastData, settings, biscottino, directDownloadLink, name, settings->singleEpisode);
 		else
 			printf(ANSI_COLOR_RED "Si e' verificato un errore per l'episodio %d" ANSI_COLOR_RESET "\n", settings->singleEpisode + 1);
 
@@ -1045,7 +1064,7 @@ void downloadPrepare(animeEpisodeData *lastData, downloadOption *settings, cooki
 
 			// Chiamo la funzione che gestisce la creazione del comando finale da eseguire
 			if (strcmp(directDownloadLink, "ERROR"))
-				downloadFile(lastData, settings, biscottino, pageDirectLink, directDownloadLink, name, i);
+				downloadFile(lastData, settings, biscottino, directDownloadLink, name, i);
 			else
 				printf(ANSI_COLOR_RED "Si e' verificato un errore per l'episodio %d" ANSI_COLOR_RESET "\n", i + 1);
 
@@ -1060,7 +1079,7 @@ void downloadPrepare(animeEpisodeData *lastData, downloadOption *settings, cooki
 char *getDirectEpisodeDownloadLink(cookie biscottino, char *pageDirectLink, char *extension)
 {
 	// Creazione comando di download
-	char *downloadCommand = (char *)malloc(sizeof(char) * (strlen(extension) + strlen(pageDirectLink) + strlen(biscottino.code) + 200));
+	char *downloadCommand = (char *) malloc(sizeof(char) * (strlen(extension) + strlen(pageDirectLink) + strlen(biscottino.code) + 200));
 	if (downloadCommand == NULL) {
 		perror("malloc");
 		_exit(-2);
@@ -1095,7 +1114,7 @@ char *getDirectEpisodeDownloadLink(cookie biscottino, char *pageDirectLink, char
 			if (strstr(fileEpisodeData[i], "Download Alternativo") != NULL)
 			{
 				// Riga giusta
-				for (int k = 0; k < strlen(fileEpisodeData[i]); k++)
+				for (unsigned int k = 0; k < strlen(fileEpisodeData[i]); k++)
 				{
 					// Calcolo quanto e' lungo il link di download (punto di inizio, punto di fine)
 					if (posUno == 0 && fileEpisodeData[i][k] == '\"')
@@ -1112,7 +1131,7 @@ char *getDirectEpisodeDownloadLink(cookie biscottino, char *pageDirectLink, char
 				}
 
 				// Alloco un pointer per il link, gli copio dentro il link corretto ed eseguo il return della funzione
-				char *returnLink = (char *)malloc(sizeof(char) * (posDue - posUno + 1));
+				char *returnLink = (char *) malloc(sizeof(char) * (posDue - posUno + 1));
 				if (returnLink == NULL) {
 					perror("malloc");
 					_exit(-2);
@@ -1131,13 +1150,14 @@ char *getDirectEpisodeDownloadLink(cookie biscottino, char *pageDirectLink, char
 	return "ERROR";
 }
 
-void downloadFile(animeEpisodeData *lastData, downloadOption *settings, cookie biscottino, char *pageDirectLink, char *directDownloadLink, char *name, int i)
+void downloadFile(animeEpisodeData *lastData, downloadOption *settings, cookie biscottino, char *directDownloadLink, char *name, int i)
 {
 	// Per sprintf() del numero dell'episodio che deve scaricare
+	// 4 caratteri + 1 fine stringa, non esistono ancora anime con 10000 episodi!
 	char ep[5];
 
 	// Creo un comando curl che scarica l'episodio dal link ottenuto prima in caso il valore di return sia diverso da "ERROR"
-	char *downloadCommandLink = (char *)malloc(sizeof(char) * (strlen(directDownloadLink) + strlen(name) + strlen(biscottino.code) + 500));
+	char *downloadCommandLink = (char *) malloc(sizeof(char) * (strlen(directDownloadLink) + strlen(name) + strlen(biscottino.code) + 500));
 	if (downloadCommandLink == NULL) {
 		perror("malloc");
 		_exit(-2);

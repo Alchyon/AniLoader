@@ -6,7 +6,7 @@
 	char *getlogin()
 	{
 		DWORD us = UNLEN + 1;
-		char *username = (char *)malloc(sizeof(char) * 65);
+		char *username = (char *) malloc(sizeof(char) * 65);
 		if (username == NULL) {
 			perror("malloc");
 			_exit(-2);
@@ -25,28 +25,36 @@ void changelog()
 {
 	system(clearScreen);
 	printf("########################################################\n");
-	printf("#                       Changelog                      #\n");
+	printf("#                      "ANSI_COLOR_YELLOW" Changelog  "ANSI_COLOR_RESET"                    #\n");
 	printf("########################################################\n");
 	printf("#                                                      #\n");
-	printf("# 1.0                                                  #\n");
+	printf("#"ANSI_COLOR_CYAN" 1.0 "ANSI_COLOR_RESET"                                                 #\n");
 	printf("# - Initial commit                                     #\n");
 	printf("#                                                      #\n");
-	printf("# 1.1                                                  #\n");
+	printf("#"ANSI_COLOR_CYAN" 1.1 "ANSI_COLOR_RESET"                                                 #\n");
 	printf("# - Risolto un problema con alcuni nomi di directory   #\n");
 	printf("# - Aggiunto un nuovo metodo di richiesta HTTP che     #\n");
 	printf("#   utilizza i cookie per poter accedere al sito       #\n");
 	printf("#   anche in caso di protezione attiva                 #\n");
 	printf("#                                                      #\n");
-	printf("# 1.2                                                  #\n");
+	printf("#"ANSI_COLOR_CYAN" 1.2 "ANSI_COLOR_RESET"                                                 #\n");
 	printf("# - Risolto un problema che faceva crashare il         #\n");
 	printf("#   programma se erano presenti alcuni caratteri       #\n");
 	printf("#   speciali nel nome dell'anime cercato               #\n");
 	printf("#                                                      #\n");
-	printf("# 1.4.1                                                #\n");
+	printf("#"ANSI_COLOR_CYAN" 1.4.1 "ANSI_COLOR_RESET"                                               #\n");
 	printf("# - Link fixed                                         #\n");
 	printf("#                                                      #\n");
-	printf("# 1.4.2                                                #\n");
+	printf("#"ANSI_COLOR_CYAN" 1.4.2 "ANSI_COLOR_RESET"                                               #\n");
 	printf("# - Cookie fixed                                       #\n");
+	printf("#                                                      #\n");
+	printf("#"ANSI_COLOR_CYAN" 1.5 "ANSI_COLOR_RESET"                                                 #\n");
+	printf("# - Risolti vari problemi di memory leak che           #\n");
+	printf("#   creavano errori durante il download, quali         #\n");
+	printf("#   percorsi non trovati o errori di sintassi          #\n");
+	printf("# - Risolto un problema per il quale gli anime con     #\n");
+	printf("#   un numero maggiore di 500 episodi causavano un     #\n");
+	printf("#   crash del programma                                #\n");
 	printf("#                                                      #\n");
 	printf("########################################################\n");
 	printf("Premere un tasto per continuare. . .");
@@ -82,7 +90,7 @@ char *createPath(char string[])
 	char user[50];
 	strcpy(user, getlogin());
 
-	char *path = (char *)malloc(sizeof(char) * (sizeof(user) + sizeof(strlen(string)) + 50));
+	char *path = (char *) malloc(sizeof(char) * (sizeof(user) + sizeof(strlen(string)) + 50));
 	if (path == NULL)
 	{
 		perror("malloc");
@@ -97,11 +105,9 @@ char *createPath(char string[])
 
 char *extractInMemoryFromFile(char searchFilePath[])
 {
-	char *check;
-
 	// Allocazione matrice
 	int size = findSize(searchFilePath);
-	char *searchFileData = (char *)malloc(sizeof(char) * (size + 1));
+	char *searchFileData = (char *) malloc(sizeof(char) * (size + 1));
 	if (searchFileData == NULL)
 	{
 		perror("malloc");
@@ -121,7 +127,7 @@ char *extractInMemoryFromFile(char searchFilePath[])
 
 	// Chiusura ed eliminazione
 	fclose(search);
-	int i = remove(searchFilePath);
+	remove(searchFilePath);
 
 	// Return dei dati
 	return searchFileData;
@@ -131,7 +137,7 @@ char **createMatrixByEscapeCharacter(char string[], char escape[], int *line)
 {
 	// Creo una copia per la variabile intera e creo la matrice
 	int posix;
-	char **searchDataResult = (char **)malloc(sizeof(char *) * strlen(string));
+	char **searchDataResult = (char **) malloc(sizeof(char *) * strlen(string));
 	if (searchDataResult == NULL)
 	{
 		perror("malloc");
@@ -144,7 +150,7 @@ char **createMatrixByEscapeCharacter(char string[], char escape[], int *line)
 	for (posix = 0; token != NULL; posix++)
 	{
 		// Copio la stringa
-		searchDataResult[posix] = (char *)malloc(sizeof(char) * (strlen(token) + 1));
+		searchDataResult[posix] = (char *) malloc(sizeof(char) * (strlen(token) + 1));
 		if (searchDataResult[posix] == NULL)
 		{
 			perror("malloc");
@@ -164,19 +170,21 @@ char **createMatrixByEscapeCharacter(char string[], char escape[], int *line)
 }
 
 char* fixDirectoryName(char* name) {
-	int i, k;
+	unsigned int i, k;
 	char* fix = (char *) malloc(sizeof(char) * strlen(name));
 
 	for (i = 0, k = 0; i < strlen(name); i++) {
 		switch(name[i]) {
-			case '\\':	case '/':	case ':':	case '\'':
-			case '?':	case '"':	case '<':	case '>':
-			case '|':
+			case '\\':	case '/':	case ':':	case '*':
+			case '?':	case '\"':	case '<':	case '>':
+			case '|':	case '{':	case '}':	case '~':
 				break;
-			
+
 			default:
 				fix[k] = name[i];
+				fix[k + 1] = '\0';
 				k++;
+				break;
 		}
 	}
 

@@ -2,7 +2,7 @@
 
 void starting();
 void optionMenu();
-void retrieveCookie(cookie *, char**, int);
+void retrieveCookie(cookie *, char**);
 
 char* insertName();
 void searchAnimeByName(cookie, char *);
@@ -20,4 +20,4 @@ downloadOption *downloadMenu(char *, int);
 // Funzioni per il download
 void downloadPrepare(animeEpisodeData *, downloadOption *, cookie, char *, char *);
 char *getDirectEpisodeDownloadLink(cookie, char *, char *);
-void downloadFile(animeEpisodeData *, downloadOption *, cookie, char *, char *, char *, int);
+void downloadFile(animeEpisodeData *, downloadOption *, cookie, char *, char *, int);

@@ -7,10 +7,10 @@
 #include <time.h>
 
 #ifdef _WIN32
-	// Definisco windows.h e Lmcons.h per trasformare getlogin() in una Windows API
+	// Aggiungo windows.h e Lmcons.h per trasformare getlogin() in una Windows API
 	#include <windows.h>
 	#include <Lmcons.h>
-	// Define conio.h for Windows getch();
+	// Aggiungo conio.h for Windows getch();
 	#include <conio.h>
 
 	// Variabili d'ambiente in base all'OS
