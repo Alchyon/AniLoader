@@ -3,8 +3,7 @@
 
 // Trasformo getlogin() della unistd.h usata in __unix__ in una Windows API ( GetUserName(char *, DWORD *) )
 #ifdef _WIN32
-	char *getlogin()
-	{
+	char *getlogin() {
 		DWORD us = UNLEN + 1;
 		char *username = (char *) malloc(sizeof(char) * 65);
 		if (username == NULL) {
@@ -21,8 +20,7 @@
 #endif
 
 // Other normal function
-void changelog()
-{
+void changelog() {
 	system(clearScreen);
 	printf("########################################################\n");
 	printf("#                      "ANSI_COLOR_YELLOW" Changelog  "ANSI_COLOR_RESET"                    #\n");
@@ -56,19 +54,26 @@ void changelog()
 	printf("#   un numero maggiore di 500 episodi causavano un     #\n");
 	printf("#   crash del programma                                #\n");
 	printf("#                                                      #\n");
+	printf("#"ANSI_COLOR_CYAN" 1.6 "ANSI_COLOR_RESET"                                                 #\n");
+	printf("# - Implementata una funzionalita' che permette di     #\n");
+	printf("#   aggiungere anime ai preferiti, in modo che questi  #\n");
+	printf("#   siano controllati all'avvio del programma per      #\n");
+	printf("#   verificare la presenza di nuovi episodi che        #\n");
+	printf("#   verranno scaricati in automatico nella cartella    #\n");
+	printf("#   prestabilita.                                      #\n");
+	printf("#   Utile per chi guarda gli anime in simulcast.       #\n");
+	printf("#                                                      #\n");
 	printf("########################################################\n");
 	printf("Premere un tasto per continuare. . .");
 	getch();
 }
 
-long int findSize(char file_name[])
-{
+long int findSize(char *file_name) {
 	// Apro il file in lettura
 	FILE *fp = fopen(file_name, "r");
 
 	// Controllo se il file esiste
-	if (fp == NULL)
-	{
+	if (fp == NULL) {
 		perror("fopen");
 		_exit(-1);
 	}
@@ -85,14 +90,12 @@ long int findSize(char file_name[])
 	return res;
 }
 
-char *createPath(char string[])
-{
+char *createPath(char *string) {
 	char user[50];
 	strcpy(user, getlogin());
 
 	char *path = (char *) malloc(sizeof(char) * (sizeof(user) + sizeof(strlen(string)) + 50));
-	if (path == NULL)
-	{
+	if (path == NULL) {
 		perror("malloc");
 		_exit(-2);
 	}
@@ -103,21 +106,18 @@ char *createPath(char string[])
 	return path;
 }
 
-char *extractInMemoryFromFile(char searchFilePath[])
-{
+char *extractInMemoryFromFile(char *searchFilePath, bool del) {
 	// Allocazione matrice
 	int size = findSize(searchFilePath);
-	char *searchFileData = (char *) malloc(sizeof(char) * (size + 1));
-	if (searchFileData == NULL)
-	{
+	char *searchFileData = (char *) malloc(sizeof(char) * (size + 10));
+	if (searchFileData == NULL) {
 		perror("malloc");
 		_exit(-2);
 	}
 
 	// Apertura file
 	FILE *search = fopen(searchFilePath, "r");
-	if (search == NULL)
-	{
+	if (search == NULL) {
 		perror("malloc");
 		_exit(-2);
 	}
@@ -127,19 +127,19 @@ char *extractInMemoryFromFile(char searchFilePath[])
 
 	// Chiusura ed eliminazione
 	fclose(search);
-	remove(searchFilePath);
+	
+	if (del)
+		remove(searchFilePath);
 
 	// Return dei dati
 	return searchFileData;
 }
 
-char **createMatrixByEscapeCharacter(char string[], char escape[], int *line)
-{
+char **createMatrixByEscapeCharacter(char *string, char *escape, int *line) {
 	// Creo una copia per la variabile intera e creo la matrice
 	int posix;
 	char **searchDataResult = (char **) malloc(sizeof(char *) * strlen(string));
-	if (searchDataResult == NULL)
-	{
+	if (searchDataResult == NULL) {
 		perror("malloc");
 		_exit(-2);
 	}
@@ -147,12 +147,10 @@ char **createMatrixByEscapeCharacter(char string[], char escape[], int *line)
 	// Effettuo la copia token per token
 	char *token = strtok(string, escape);
 
-	for (posix = 0; token != NULL; posix++)
-	{
+	for (posix = 0; token != NULL; posix++) {
 		// Copio la stringa
 		searchDataResult[posix] = (char *) malloc(sizeof(char) * (strlen(token) + 1));
-		if (searchDataResult[posix] == NULL)
-		{
+		if (searchDataResult[posix] == NULL) {
 			perror("malloc");
 			_exit(-2);
 		}
@@ -169,9 +167,9 @@ char **createMatrixByEscapeCharacter(char string[], char escape[], int *line)
 	return searchDataResult;
 }
 
-char* fixDirectoryName(char* name) {
+char *fixDirectoryName(char *name) {
 	unsigned int i, k;
-	char* fix = (char *) malloc(sizeof(char) * strlen(name));
+	char *fix = (char *) malloc(sizeof(char) * strlen(name));
 
 	for (i = 0, k = 0; i < strlen(name); i++) {
 		switch(name[i]) {
