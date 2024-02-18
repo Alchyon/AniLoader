@@ -9,13 +9,11 @@
 // -3 -> OS non supportato
 // -4 -> scelta utente
 
-int main (int argc, char **argv) {
+int main () {
 	// TO-DO
-	// Doppio click: avvio standard su Windows 10+
-	// Avvio con parametri: bypass di cURL, cartella locale
-	
-	// Gestione tramite argc/argv
-	// Parametrizzare la variabile di cURL tramite global values in caso di aggiunta di CFU (secondario)
+	// - Avvio con parametri ??:
+	//	-	--curl		custom curl directory, bypass OS limit
+	//	-	--cfu		boot only for cfu and close program after that
 
 	#if !_WIN32_WINNT_WIN10
 		printf("Programma non compatibile con il sistema operativo.\n");
@@ -23,40 +21,6 @@ int main (int argc, char **argv) {
 		system("pause");
 		_exit(-3);
 	#endif
-
-	// argc:
-	//	1:	default boot
-	//	2:	param 1 enabled
-	if (argc == 1) {
-		FILE *CFU = fopen("CFU.bat", "w");
-		fprintf(CFU, "@echo OFF\nstart \"Ricerca di aggiornamenti...\" \"%s\" 1", argv[0]);
-		fclose(CFU);
-
-		system("CFU.bat");
-		int i = remove("CFU.bat");
-
-		// Reimposto argc in quanto non piu' utilizzato in nessuna altra parte del codice!
-		argc = 0;
-	}
-	
-	if (argc == 2) {
-		// Se sono qui dentro significa che ho effettuato un riavvio del programma
-		// e quindi eseguo la routine relativa a CFU in una funzione apposita.
-		// Dato che posso usare lo stesso sorgente, rielaborare la funzione e' facile
-		// visto che le funzioni sono gia' scritte
-
-		// Reimposto argc in quanto non piu' utilizzato in nessuna altra parte del codice!
-		argc = 0;
-		
-		// CFU routine
-		// File positioning: CFU.c
-		CheckForUpdatesRoutine();
-
-		_exit(0);
-	}
-
-	// Variabile per i futuri controlli sui cookie, necessaria per ogni richiesta
-	cookie biscottino = { 0, "" };
 
 	// Funzione con il solo scopo grafico, non modifica in alcun modo il funzionamento
 	starting();
@@ -73,47 +37,33 @@ int main (int argc, char **argv) {
 	char **searchDataResult;
 	int divFound = 0;
 
-	// Cookie part
-	for (int i = 0; i <= biscottino.enable; i++) {
-		// Creazione ed esecuzione del comando per scaricare la pagina di ricerca
-		searchAnimeByName(biscottino, name);
+	// Creazione ed esecuzione del comando per scaricare la pagina di ricerca
+	searchAnimeByName(name);
 
-		// Creo la directory in cui e' stato salvato il file
-		// Leggo tutto il file e lo inserisco in un array
-		path = createPath("search.txt");
-		searchData = extractInMemoryFromFile(path, true);
-		free(path);
+	// Creo la directory in cui e' stato salvato il file
+	// Leggo tutto il file e lo inserisco in un array
+	path = createPath("search.txt");
+	searchData = extractInMemoryFromFile(path, true);
+	free(path);
 
-		// Creo una matrice contenente tutte le righe del file splittando i '\n' dal file
-		line = 0;
-		searchDataResult = createMatrixByEscapeCharacter(searchData, "\n", &line);
-		free(searchData);
+	// Creo una matrice contenente tutte le righe del file splittando i '\n' dal file
+	line = 0;
+	searchDataResult = createMatrixByEscapeCharacter(searchData, "\n", &line);
+	free(searchData);
 		
-		// Cerco il div contenente gli anime
-		divFound = 0;
-		divFound = searchAnimeDiv(searchDataResult, line);
-		// Se non e' stato trovato il div contenente gli anime
-		if (divFound == -1) {
-			// Se i cookie non sono abilitati e la stringa li contiene, li abilito, altrimenti errore nella ricerca
-			if (biscottino.enable == 0 && strstr(searchDataResult[0], "SecurityAW") && line == 1) {
-				fflush(stdin);
-				printf(ANSI_COLOR_RED "Errore, accesso al sito concesso solo tramite cookie!" ANSI_COLOR_RESET "\n");
-				retrieveCookie(&biscottino, searchDataResult);
+	// Cerco il div contenente gli anime
+	divFound = 0;
+	divFound = searchAnimeDiv(searchDataResult, line);
+	// Se non e' stato trovato il div contenente gli anime
+	if (divFound == -1) {
+		// Programma standard. Errore in caso di anime non trovati
+		fflush(stdin);
+		printf(ANSI_COLOR_RED "Errore, nessun anime trovato!" ANSI_COLOR_RESET "\n");
+		printf("Premere un tasto per riavviare il programma . . .");
+		getch();
 
-				printf(ANSI_COLOR_GREEN "Cookie creato, nuova richiesta in corso..." ANSI_COLOR_RESET "\n");
-				free(searchDataResult);
-			}
-			else {
-				// Programma standard. Errore in caso di anime non trovati
-				fflush(stdin);
-				printf(ANSI_COLOR_RED "Errore, nessun anime trovato!" ANSI_COLOR_RESET "\n");
-				printf("Premere un tasto per riavviare il programma . . .");
-				getch();
-
-				free(searchDataResult);
-				main(argc, argv);
-			}
-		}
+		free(searchDataResult);
+		main();
 	}
 
 	// Ottengo i nomi degli anime
@@ -127,7 +77,7 @@ int main (int argc, char **argv) {
 	if (!printFindAnime(baseData)) {
 		// Se non vengono trovati anime riavvio il programma dall'inizio
 		free(baseData);
-		main(argc, argv);
+		main();
 	}
 
 	// Ottengo la posizione dell'array che contiene l'anime selezionato
@@ -136,12 +86,12 @@ int main (int argc, char **argv) {
 	if (selected == -1) {
 		// Riavvio il programma se -1
 		free(baseData);
-		main(argc, argv);
+		main();
 	}
 	
 	// Scarico la pagina di redirect dell'anime selezionato
 	// Il return e' il nome del file creato che viene usato per creare il path del file da leggere
-	path = createPath(downloadRedirectPage(baseData, biscottino, selected));
+	path = createPath(downloadRedirectPage(baseData, selected));
 
 	// Leggo tutto il file e lo inserisco in un array
 	char *redirectContent = extractInMemoryFromFile(path, true);
@@ -152,7 +102,7 @@ int main (int argc, char **argv) {
 	free(redirectContent);
 
 	// Creo il comando per scaricare la pagina corretta e lo eseguo
-	path = createPath(downloadCorrectPage(biscottino, pageDirectLink));
+	path = createPath(downloadCorrectPage(pageDirectLink));
 
 	// Ottengo il contenuto della pagina dal file ed elimino lo stesso
 	char *pageContent = extractInMemoryFromFile(path, true);
@@ -170,15 +120,15 @@ int main (int argc, char **argv) {
 		// Errore, nessun episodio trovato
 		// Catturo il carattere nell'stdin e riavvio il main()
 		getchar();
-		main(argc, argv);
+		main();
 	}
 
 	// Creo una struct con tutte le opzioni necessarie per il download, argc/argv passati solo per un successivo utilizzo
-	downloadOption *settings = downloadMenu(baseData->correctAnimeName[selected], lastData->numberOfEpisode, argc, argv);
+	downloadOption *settings = downloadMenu(baseData->correctAnimeName[selected], lastData->numberOfEpisode);
 
 	// Chiamo l'ultima funzione del main che si occuperà di richiamare a sua volta funzioni annidate
 	// in un ciclo per gestire in maniera completa il download
-	downloadPrepare(lastData, settings, biscottino, pageDirectLink, baseData->correctAnimeName[selected], argc, argv);
+	downloadPrepare(lastData, settings, pageDirectLink, baseData->correctAnimeName[selected]);
 	
 	// Free finali
 	free(pageDirectLink);
@@ -186,7 +136,6 @@ int main (int argc, char **argv) {
 	free(lastData);
 	free(settings);
 
-	// '\n' finale per Linux allo scopo di mandare a capo il terminale
 	return 0;
 }
 
@@ -195,9 +144,10 @@ void starting () {
 	printf("########################################################\n");
 	printf("#                                                      #\n");
 	printf("#                      " ANSI_COLOR_GREEN "Ani-Loader" ANSI_COLOR_RESET "                      #\n");
-	printf("#                        v. 1.6                        #\n");
+	printf("#                        v. 1.7                        #\n");
 	printf("#                                                      #\n");
-	printf("#            </>     - " ANSI_COLOR_GREEN "By Alcyon_" ANSI_COLOR_RESET " -     </>            #\n");
+	printf("#            </>     - " ANSI_COLOR_GREEN "By Alchyon" ANSI_COLOR_RESET " -     </>            #\n");
+	printf("#             " ANSI_COLOR_CYAN "Telegram" ANSI_COLOR_RESET ": " ANSI_COLOR_CYAN "@AniLoaderUpdates" ANSI_COLOR_RESET "              #\n");
 	printf("#                                                      #\n");
 	printf("########################################################\n");
 	printf("\n");
@@ -210,44 +160,46 @@ void optionMenu () {
 	printf("#                                                      #\n");
 	printf("#" ANSI_COLOR_YELLOW "  INVIO" ANSI_COLOR_RESET " -- > Cerca un anime                           #\n");
 	printf("#" ANSI_COLOR_YELLOW "  1" ANSI_COLOR_RESET " -- > Controlla l'ultimo changelog riassuntivo     #\n");
-	printf("#" ANSI_COLOR_YELLOW "  QUALSIASI ALTRO TASTO" ANSI_COLOR_RESET " -- > Esci dal programma       #\n");
+	printf("#" ANSI_COLOR_YELLOW "  2" ANSI_COLOR_RESET " -- > Visualizza o elimina gli anime preferiti     #\n");
+	printf("#" ANSI_COLOR_YELLOW "  3" ANSI_COLOR_RESET " -- > Ricerca gli aggiornamenti per i preferiti    #\n");
+	printf("#" ANSI_COLOR_YELLOW "  ESC" ANSI_COLOR_RESET " -- > Esci dal programma                         #\n");
 	printf("#                                                      #\n");
 	printf("########################################################\n");
 	printf("Scegliere opzione: ");
 
-	char option = getch();
-	fflush(stdin);
+	char option;
+	do	option = getch();
+	while (option != 13 && option != 27 && option != '1' && option != '2' && option != '3' && option != EOF);
+
+	system(clearScreen);
+	switch (option) {
+		case '1':	changelog();
+					break;
+		
+		case '2':	delLibrary();
+					break;
+		
+		case '3':	printf(ANSI_COLOR_YELLOW "Controllo aggiornamenti in corso...\n" ANSI_COLOR_RESET);
+					CheckForUpdatesRoutine();
+					printf(ANSI_COLOR_GREEN "Aggiornamento completato." ANSI_COLOR_RESET);
+					break;
+		
+		case 27:	exit(-4);
+	}
 
 	switch (option) {
-	case '\n':
-		break;
-	case '\r':
-		break;
-	case '1':
-		changelog();
-		system(clearScreen);
-		optionMenu();
-		break;
-	default:
-		exit(-4);
-	}
-}
+		case '1':
+		case '2':
+		case '3':	printf("\nPremere INVIO per continuare...");
+					while (option = getch() != 13 && option != EOF);
+					system(clearScreen);
 
-void retrieveCookie (cookie* biscottino, char** searchDataResult) {
-	// Imposto l'uso dei cookie
-	biscottino->enable = 1;
-
-	// Splitto la stringa con "= "
-	char* token = strtok(searchDataResult[0], "= ");
-	while (token != NULL) {
-		// La riga successiva ad "SecurityAW" contiene il token necessario
-		if (strstr(token, "SecurityAW")) {
-			token = strtok(NULL, "= ");
-			strcpy(biscottino->code, token);
-			break;
-		}
-
-		token = strtok(NULL, "= ");
+					starting();
+					optionMenu();
+					break;
+		
+		case '\n':
+		case '\r':	break;
 	}
 }
 
@@ -282,19 +234,15 @@ char *insertName () {
 	return name;
 }
 
-void searchAnimeByName (cookie biscottino, char* name) {
+void searchAnimeByName (char* name) {
 	// Creazione comando
-	char *command = (char *) malloc(sizeof(char) * (strlen(name) + strlen(biscottino.code) + 100));
+	char *command = (char *) malloc(sizeof(char) * (strlen(name) + 100));
 	if (command == NULL) {
 		perror("malloc");
 		_exit(-2);
 	}
 
-	// Controllo per i cookie
-	if (!biscottino.enable)
-		sprintf(command, "curl -s \"https://www.animeworld.so/search?keyword=%s\" > \"%s\"", name, createPath("search.txt"));
-	else
-		sprintf(command, "curl -s \"https://www.animeworld.so/search?keyword=%s\" -b \"SecurityAW=%s\"> \"%s\"", name, biscottino.code, createPath("search.txt"));
+	sprintf(command, "curl -s \"https://www.animeworld.so/search?keyword=%s\" > \"%s\"", name, createPath("search.txt"));
 
 	system(command);
 	free(command);
@@ -516,7 +464,7 @@ bool printFindAnime (animeSearchData *baseData) {
 		printf(ANSI_COLOR_RED "Errore: nessun anime trovato..." ANSI_COLOR_RESET "\n\n");
 		printf("Questo puo' accadere quando, all'inserimento del nome, MANCANO o SONO PRESENTI caratteri aggiuntivi\n");
 		printf("come spazi, trattini, punti o virgole. Si consiglia di riprovare inserendo meno caratteri o eventualmente\n");
-		printf("usare il nome in giapponese, se nonostante cio' non verranno trovati risultati, allora significa che l'anime\n");
+		printf("usando il nome in giapponese, se nonostante cio' non verranno trovati risultati, allora significa che l'anime\n");
 		printf("non e' presente o e' codificato in un formato sconosciuto.\n");
 		printf(ANSI_COLOR_YELLOW "Premere un tasto per riavviare il programma . . ." ANSI_COLOR_RESET);
 		getch();
@@ -536,10 +484,10 @@ bool printFindAnime (animeSearchData *baseData) {
 
 		// Se gli anime sono esattamente 40 (ricerca poco precisa)
 		if (baseData->numberOfAnime == 40) {
-			// Piu' di una pagina disponibile, update futuro ?
+			// TO-DO Piu' di una pagina disponibile, update futuro ?
 			printf("\n");
 			printf("E' possibile che alcuni anime non vengano mostrati.\n");
-			printf("La prossima volta provare con una ricerca piu' precisa!\n");
+			printf("La prossima volta si consiglia di provare con una ricerca piu' precisa!\n");
 		}
 	}
 
@@ -575,18 +523,14 @@ int selectAnime (animeSearchData *baseData) {
 	return selected;
 }
 
-char *downloadRedirectPage (animeSearchData *baseData, cookie biscottino, int selected) {
-	char *command = (char *) malloc(sizeof(char) * (strlen(baseData->findAnimeLink[selected]) + strlen(biscottino.code) + 300));
+char *downloadRedirectPage (animeSearchData *baseData, int selected) {
+	char *command = (char *) malloc(sizeof(char) * (strlen(baseData->findAnimeLink[selected]) + 300));
 	if (command == NULL) {
 		perror("malloc");
 		_exit(-2);
 	}
 
-	// Controllo cookie
-	if (!biscottino.enable)
-		sprintf(command, "curl -s \"https://www.animeworld.so%s\" > \"%s\"", baseData->findAnimeLink[selected], createPath("redirect.txt"));
-	else
-		sprintf(command, "curl -s \"https://www.animeworld.so%s\" -b \"SecurityAW=%s\"> \"%s\"", baseData->findAnimeLink[selected], biscottino.code, createPath("redirect.txt"));
+	sprintf(command, "curl -s \"https://www.animeworld.so%s\" > \"%s\"", baseData->findAnimeLink[selected], createPath("redirect.txt"));
 
 	system(command);
 	free(command);
@@ -612,18 +556,14 @@ char *getPageLink (char *redirectContent) {
 	return momentCopy;
 }
 
-char *downloadCorrectPage (cookie biscottino, char *pageDirectLink) {
+char *downloadCorrectPage (char *pageDirectLink) {
 	char *command = (char *) malloc(sizeof(char) * (strlen(pageDirectLink) + 300));
 	if (command == NULL) {
 		perror("malloc");
 		_exit(-2);
 	}
 
-	// Controllo cookie
-	if (!biscottino.enable)
-		sprintf(command, "curl -s \"https://www.animeworld.so%s\" > \"%s\"", pageDirectLink, createPath("page.txt"));
-	else
-		sprintf(command, "curl -s \"https://www.animeworld.so%s\" -b \"SecurityAW=%s\"> \"%s\"", pageDirectLink, biscottino.code, createPath("page.txt"));
+	sprintf(command, "curl -s \"https://www.animeworld.so%s\" > \"%s\"", pageDirectLink, createPath("page.txt"));
 
 	system(command);
 	free(command);
@@ -731,7 +671,7 @@ animeEpisodeData *getEpisodeExtension (char **pageDataResult, int line) {
 	return episodeData;
 }
 
-downloadOption *downloadMenu (char *name, int numberOfAnime, int argc, char **argv) {
+downloadOption *downloadMenu (char *name, int numberOfAnime) {
 	// Allocazione struttura per valore di return
 	downloadOption *option = (downloadOption *) malloc(sizeof(downloadOption));
 	if (option == NULL) {
@@ -827,7 +767,7 @@ downloadOption *downloadMenu (char *name, int numberOfAnime, int argc, char **ar
 		case 27:
 			free(option);
 			getchar();
-			main(argc, argv);
+			main();
 			break;
 
 		default:
@@ -952,7 +892,7 @@ downloadOption *downloadMenu (char *name, int numberOfAnime, int argc, char **ar
 }
 
 // Funzioni che servono a ottenere informazioni e dati necessari al solo download
-void downloadPrepare (animeEpisodeData *lastData, downloadOption *settings, cookie biscottino, char *pageDirectLink, char *name, int argc, char **argv) {
+void downloadPrepare (animeEpisodeData *lastData, downloadOption *settings, char *pageDirectLink, char *name) {
 	// Correggo il directLink eliminando l'estensione
 	int i;
 	for (i = strlen(pageDirectLink); pageDirectLink[i] != '/'; i--);
@@ -978,11 +918,11 @@ void downloadPrepare (animeEpisodeData *lastData, downloadOption *settings, cook
 				printf("Download episodio %d\n", i + 1);
 
 				// Mi faccio ritornare il link al download diretto
-				directDownloadLink = getDirectEpisodeDownloadLink(biscottino, pageDirectLink, lastData->animeEpisodeExtension[i]);
+				directDownloadLink = getDirectEpisodeDownloadLink(pageDirectLink, lastData->animeEpisodeExtension[i]);
 
 				// Chiamo la funzione che gestisce la creazione del comando finale da eseguire
 				if (strcmp(directDownloadLink, "ERROR"))
-					downloadFile(lastData, settings, biscottino, directDownloadLink, name, i);
+					downloadFile(lastData, settings, directDownloadLink, name, i);
 				else
 					printf(ANSI_COLOR_RED "Si e' verificato un errore per l'episodio %d" ANSI_COLOR_RESET "\n", i + 1);
 
@@ -1000,11 +940,11 @@ void downloadPrepare (animeEpisodeData *lastData, downloadOption *settings, cook
 			printf(ANSI_COLOR_GREEN "Download in corso dell'episodio %d di \"" ANSI_COLOR_CYAN "%s" ANSI_COLOR_GREEN "\"" ANSI_COLOR_RESET "\n", settings->singleEpisode + 1, name);
 
 			// Mi faccio ritornare il link al download diretto
-			directDownloadLink = getDirectEpisodeDownloadLink(biscottino, pageDirectLink, lastData->animeEpisodeExtension[settings->singleEpisode]);
+			directDownloadLink = getDirectEpisodeDownloadLink(pageDirectLink, lastData->animeEpisodeExtension[settings->singleEpisode]);
 
 			// Chiamo la funzione che gestisce la creazione del comando finale da eseguire
 			if (strcmp(directDownloadLink, "ERROR"))
-				downloadFile(lastData, settings, biscottino, directDownloadLink, name, settings->singleEpisode);
+				downloadFile(lastData, settings, directDownloadLink, name, settings->singleEpisode);
 			else
 				printf(ANSI_COLOR_RED "Si e' verificato un errore per l'episodio %d" ANSI_COLOR_RESET "\n", settings->singleEpisode + 1);
 
@@ -1023,11 +963,11 @@ void downloadPrepare (animeEpisodeData *lastData, downloadOption *settings, cook
 				printf("Download episodio %d\n", i + 1);
 
 				// Mi faccio ritornare il link al download diretto
-				directDownloadLink = getDirectEpisodeDownloadLink(biscottino, pageDirectLink, lastData->animeEpisodeExtension[i]);
+				directDownloadLink = getDirectEpisodeDownloadLink(pageDirectLink, lastData->animeEpisodeExtension[i]);
 
 				// Chiamo la funzione che gestisce la creazione del comando finale da eseguire
 				if (strcmp(directDownloadLink, "ERROR"))
-					downloadFile(lastData, settings, biscottino, directDownloadLink, name, i);
+					downloadFile(lastData, settings, directDownloadLink, name, i);
 				else
 					printf(ANSI_COLOR_RED "Si e' verificato un errore per l'episodio %d" ANSI_COLOR_RESET "\n", i + 1);
 
@@ -1050,8 +990,8 @@ void downloadPrepare (animeEpisodeData *lastData, downloadOption *settings, cook
 				strcat(settings->downloadDirectory, "/");
 			}
 
-			addOnLoad(name, pageDirectLink, lastData->animeEpisodeExtension[0], settings->downloadDirectory, settings->nameEpisode, argc, argv);
-			main(argc, argv);
+			addOnLoad(name, pageDirectLink, lastData->animeEpisodeExtension[0], settings->downloadDirectory, settings->nameEpisode);
+			main();
 
 			break;
 	}
@@ -1078,19 +1018,15 @@ void createDirectory(downloadOption *settings, char *name) {
 	free(mkdir);
 }
 
-char *getDirectEpisodeDownloadLink (cookie biscottino, char *pageDirectLink, char *extension) {
+char *getDirectEpisodeDownloadLink (char *pageDirectLink, char *extension) {
 	// Creazione comando di download
-	char *downloadCommand = (char *) malloc(sizeof(char) * (strlen(extension) + strlen(pageDirectLink) + strlen(biscottino.code) + 200));
+	char *downloadCommand = (char *) malloc(sizeof(char) * (strlen(extension) + strlen(pageDirectLink) + 200));
 	if (downloadCommand == NULL) {
 		perror("malloc");
 		_exit(-2);
 	}
 
-	// Controllo cookie
-	if (!biscottino.enable)
-		sprintf(downloadCommand, "curl -s \"https://www.animeworld.so%s%s\" > \"%s", pageDirectLink, extension, createPath("ep.txt\""));
-	else
-		sprintf(downloadCommand, "curl -s \"https://www.animeworld.so%s%s\" -b \"SecurityAW=%s\"> \"%s", pageDirectLink, extension, biscottino.code, createPath("ep.txt\""));
+	sprintf(downloadCommand, "curl -s \"https://www.animeworld.so%s%s\" > \"%s", pageDirectLink, extension, createPath("ep.txt\""));
 
 	// Scarico il file
 	system(downloadCommand);
@@ -1146,23 +1082,19 @@ char *getDirectEpisodeDownloadLink (cookie biscottino, char *pageDirectLink, cha
 	return "ERROR";
 }
 
-void downloadFile (animeEpisodeData *lastData, downloadOption *settings, cookie biscottino, char *directDownloadLink, char *name, int i) {
+void downloadFile (animeEpisodeData *lastData, downloadOption *settings, char *directDownloadLink, char *name, int i) {
 	// Per sprintf() del numero dell'episodio che deve scaricare
 	// 4 caratteri + 1 fine stringa, non esistono ancora anime con 10000 episodi!
 	char ep[5];
 
 	// Creo un comando curl che scarica l'episodio dal link ottenuto prima in caso il valore di return sia diverso da "ERROR"
-	char *downloadCommandLink = (char *) malloc(sizeof(char) * (strlen(directDownloadLink) + strlen(name) + strlen(biscottino.code) + 500));
+	char *downloadCommandLink = (char *) malloc(sizeof(char) * (strlen(directDownloadLink) + strlen(name) + 500));
 	if (downloadCommandLink == NULL) {
 		perror("malloc");
 		_exit(-2);
 	}
 	
-	// Cookie
-	if (!biscottino.enable)
-		sprintf(downloadCommandLink, "curl -L -# \"%s\" > \"", directDownloadLink);
-	else
-		sprintf(downloadCommandLink, "curl -L -# \"%s\" -b \"SecurityAW=%s\"> \"", directDownloadLink, biscottino.code);
+	sprintf(downloadCommandLink, "curl -L -# \"%s\" > \"", directDownloadLink);
 
 	// Controllo se la directory e' stata modificata
 	if (strlen(settings->downloadDirectory) != 0)
@@ -1204,7 +1136,7 @@ void downloadFile (animeEpisodeData *lastData, downloadOption *settings, cookie 
 	free(downloadCommandLink);
 }
 
-void addOnLoad(char *name, char *pageDirectLink, char *ext, char *downloadDirectory, char *nameEpisode, int argc, char **argv) {
+void addOnLoad(char *name, char *pageDirectLink, char *ext, char *downloadDirectory, char *nameEpisode) {
 	// Si gestisce l'aggiunta delle informazioni dell'anime selezionato alla lista degli anime che vengono controllati on-boot.
 	// Se sono qui, teoricamente ho gia' i dati richiesti per la creazione del file, quindi non dovrebbero servire ulteriori modifiche, al massimo una veloce
 	// manipolazione di stringhe su qualche info, che pero' non viene piu' riutilizzata al termine di questa funzione, in quanto void!
@@ -1244,7 +1176,7 @@ void addOnLoad(char *name, char *pageDirectLink, char *ext, char *downloadDirect
 		fclose(f);
 		free(fileName);
 
-		main(argc, argv);
+		main();
 	}
 	
 	// Se sono qui significa che il file NON esiste e che quindi puo' essere creato e scritto
@@ -1271,6 +1203,6 @@ void addOnLoad(char *name, char *pageDirectLink, char *ext, char *downloadDirect
 
 	free(fileName);
 
-	printf(ANSI_COLOR_GREEN "Anime aggiunto correttamente alla lista per il controllo all'avvio.\n" ANSI_COLOR_RESET);
+	printf(ANSI_COLOR_GREEN "Anime aggiunto correttamente alla lista dei preferiti.\n" ANSI_COLOR_RESET);
 	system("pause");
 }

@@ -1,50 +1,11 @@
 #include "libraries.h"
 #include "utilities.h"
 
-// Trasformo getlogin() della unistd.h usata in __unix__ in una Windows API ( GetUserName(char *, DWORD *) )
-#ifdef _WIN32
-	char *getlogin() {
-		DWORD us = UNLEN + 1;
-		char *username = (char *) malloc(sizeof(char) * 65);
-		if (username == NULL) {
-			perror("malloc");
-			_exit(-2);
-		}
-
-		// Mi assicuro che lo username abbia un fine stringa
-		username[65] = '\0';
-
-		GetUserName(username, &us);
-		return username;
-	}
-#endif
-
 // Other normal function
 void changelog() {
-	system(clearScreen);
 	printf("########################################################\n");
-	printf("#                      "ANSI_COLOR_YELLOW" Changelog  "ANSI_COLOR_RESET"                    #\n");
+	printf("#                     "ANSI_COLOR_YELLOW" Changelog "ANSI_COLOR_RESET"                      #\n");
 	printf("########################################################\n");
-	printf("#                                                      #\n");
-	printf("#"ANSI_COLOR_CYAN" 1.0 "ANSI_COLOR_RESET"                                                 #\n");
-	printf("# - Initial commit                                     #\n");
-	printf("#                                                      #\n");
-	printf("#"ANSI_COLOR_CYAN" 1.1 "ANSI_COLOR_RESET"                                                 #\n");
-	printf("# - Risolto un problema con alcuni nomi di directory   #\n");
-	printf("# - Aggiunto un nuovo metodo di richiesta HTTP che     #\n");
-	printf("#   utilizza i cookie per poter accedere al sito       #\n");
-	printf("#   anche in caso di protezione attiva                 #\n");
-	printf("#                                                      #\n");
-	printf("#"ANSI_COLOR_CYAN" 1.2 "ANSI_COLOR_RESET"                                                 #\n");
-	printf("# - Risolto un problema che faceva crashare il         #\n");
-	printf("#   programma se erano presenti alcuni caratteri       #\n");
-	printf("#   speciali nel nome dell'anime cercato               #\n");
-	printf("#                                                      #\n");
-	printf("#"ANSI_COLOR_CYAN" 1.4.1 "ANSI_COLOR_RESET"                                               #\n");
-	printf("# - Link fixed                                         #\n");
-	printf("#                                                      #\n");
-	printf("#"ANSI_COLOR_CYAN" 1.4.2 "ANSI_COLOR_RESET"                                               #\n");
-	printf("# - Cookie fixed                                       #\n");
 	printf("#                                                      #\n");
 	printf("#"ANSI_COLOR_CYAN" 1.5 "ANSI_COLOR_RESET"                                                 #\n");
 	printf("# - Risolti vari problemi di memory leak che           #\n");
@@ -57,15 +18,23 @@ void changelog() {
 	printf("#"ANSI_COLOR_CYAN" 1.6 "ANSI_COLOR_RESET"                                                 #\n");
 	printf("# - Implementata una funzionalita' che permette di     #\n");
 	printf("#   aggiungere anime ai preferiti, in modo che questi  #\n");
-	printf("#   siano controllati all'avvio del programma per      #\n");
+	printf("#   siano controllati all'avvio del programma, per     #\n");
 	printf("#   verificare la presenza di nuovi episodi che        #\n");
 	printf("#   verranno scaricati in automatico nella cartella    #\n");
 	printf("#   prestabilita.                                      #\n");
 	printf("#   Utile per chi guarda gli anime in simulcast.       #\n");
 	printf("#                                                      #\n");
+	printf("#"ANSI_COLOR_CYAN" 1.7 "ANSI_COLOR_RESET"                                                 #\n");
+	printf("# - Rimosso il sistema di cookie in quanto troppo      #\n");
+	printf("#   hardcoded e, di conseguenza, poco efficace.        #\n");
+	printf("# - Adesso la ricerca degli aggiornamenti per i nuovi  #\n");
+	printf("#   episodi usciti, dovra' essere avviata manualmente  #\n");
+	printf("#   dal classico menu' per prevenire possibili bug     #\n");
+	printf("#   durante la lettura dei file.                       #\n");
+	printf("# - Aggiunta la possibilita' di visualizzare ed        #\n");
+	printf("#   eliminare tutti i preferiti attualmente salvati.   #\n");
+	printf("#                                                      #\n");
 	printf("########################################################\n");
-	printf("Premere un tasto per continuare. . .");
-	getch();
 }
 
 long int findSize(char *file_name) {
@@ -91,17 +60,14 @@ long int findSize(char *file_name) {
 }
 
 char *createPath(char *string) {
-	char user[50];
-	strcpy(user, getlogin());
-
-	char *path = (char *) malloc(sizeof(char) * (sizeof(user) + sizeof(strlen(string)) + 50));
+	char *path = (char *) calloc(sizeof(strlen(string)) + 100, sizeof(char));
 	if (path == NULL) {
-		perror("malloc");
+		perror("calloc");
 		_exit(-2);
 	}
 
-	// Creazione path in base all'OS
-	sprintf(path, BPATH "%s/Downloads/%s", user, string);
+	// Creazione path
+	sprintf(path, BPATH "%s/Downloads/%s", getenv("USERNAME"), string);
 
 	return path;
 }
@@ -109,9 +75,9 @@ char *createPath(char *string) {
 char *extractInMemoryFromFile(char *searchFilePath, bool del) {
 	// Allocazione matrice
 	int size = findSize(searchFilePath);
-	char *searchFileData = (char *) malloc(sizeof(char) * (size + 10));
+	char *searchFileData = (char *) calloc(size + 10, sizeof(char));
 	if (searchFileData == NULL) {
-		perror("malloc");
+		perror("calloc");
 		_exit(-2);
 	}
 
@@ -180,8 +146,7 @@ char *fixDirectoryName(char *name) {
 
 			default:
 				fix[k] = name[i];
-				fix[k + 1] = '\0';
-				k++;
+				fix[++k] = '\0';
 				break;
 		}
 	}

@@ -6,20 +6,16 @@
 #include <unistd.h>
 #include <time.h>
 
-#ifdef _WIN32
-	// Aggiungo windows.h e Lmcons.h per trasformare getlogin() in una Windows API
-	#include <windows.h>
-	#include <Lmcons.h>
-	// Aggiungo conio.h for Windows getch();
-	#include <conio.h>
+// Windows specific
+// conio.h for Windows getch();
+#include <windows.h>
+#include <conio.h>
 
-	// Variabili d'ambiente in base all'OS
-	#define clearScreen "cls"
-	#define BPATH "C:/Users/"
+#define clearScreen "cls"
+#define BPATH "C:/Users/"
 
-	// Windows 10 - versione generica
-	#define _WIN32_WINNT_WIN10 0x0A00
-#endif
+// Windows 10 - versione generica
+#define _WIN32_WINNT_WIN10 0x0A00
 
 #define ANSI_COLOR_RED     "\x1b[31m"
 #define ANSI_COLOR_GREEN   "\x1b[32m"

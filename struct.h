@@ -1,9 +1,4 @@
 typedef struct {
-	int enable;
-	char code[33];
-} cookie;
-
-typedef struct {
 	char **findAnimeLink;
 	char **correctAnimeName;
 	int numberOfAnime;
