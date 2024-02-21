@@ -10,8 +10,6 @@ typedef struct {
 } animeEpisodeData;
 
 typedef struct {
-	int singleEpisode;
-
 	int firstEpisode;
 	int secondEpisode;
 

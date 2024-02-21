@@ -4,16 +4,16 @@
 #include "cfu.h"
 
 // _exit() values:
+//	0 -> terminato con successo, qualunque sia la causa
 // -1 -> errore apertura file
 // -2 -> errore allocazione memoria
 // -3 -> OS non supportato
-// -4 -> scelta utente
 
 int main () {
 	// TO-DO
 	// - Avvio con parametri ??:
-	//	-	--curl		custom curl directory, bypass OS limit
-	//	-	--cfu		boot only for cfu and close program after that
+	//	-	--curl		directory custom per l'eseguibile di curl, bypassa il problema di limitazione dell'OS
+	//	-	--cfu		avvio diretto per controllare i nuovi episodi usciti, tralasciando tutto il resto del codice
 
 	#if !_WIN32_WINNT_WIN10
 		printf("Programma non compatibile con il sistema operativo.\n");
@@ -22,15 +22,15 @@ int main () {
 		_exit(-3);
 	#endif
 
-	// Funzione con il solo scopo grafico, non modifica in alcun modo il funzionamento
+	// Funzione con il solo scopo grafico
 	starting();
 	// Menu' iniziale
 	optionMenu();
 
-	// Inserisco il nome da cercare, procedura separata per gestire i cookie
+	// Inserisco il nome da cercare
 	char *name = insertName();
 
-	// Variabili usate nella parte sottostante per ottenere i cookie se necessari, dichiarate qui per questioni di scope
+	// Variabili usate nella parte sottostante per il funzionamento base del programma, dichiarate qui per questioni di scope
 	char *path;
 	char *searchData;
 	int line = 0;
@@ -38,9 +38,10 @@ int main () {
 	int divFound = 0;
 
 	// Creazione ed esecuzione del comando per scaricare la pagina di ricerca
+	// URL ... /search?keyword= ...
 	searchAnimeByName(name);
 
-	// Creo la directory in cui e' stato salvato il file
+	// Inserisco in una stringa il path assoluto del file scaricato poi...
 	// Leggo tutto il file e lo inserisco in un array
 	path = createPath("search.txt");
 	searchData = extractInMemoryFromFile(path, true);
@@ -52,11 +53,8 @@ int main () {
 	free(searchData);
 		
 	// Cerco il div contenente gli anime
-	divFound = 0;
 	divFound = searchAnimeDiv(searchDataResult, line);
-	// Se non e' stato trovato il div contenente gli anime
 	if (divFound == -1) {
-		// Programma standard. Errore in caso di anime non trovati
 		fflush(stdin);
 		printf(ANSI_COLOR_RED "Errore, nessun anime trovato!" ANSI_COLOR_RESET "\n");
 		printf("Premere un tasto per riavviare il programma . . .");
@@ -66,7 +64,7 @@ int main () {
 		main();
 	}
 
-	// Ottengo i nomi degli anime
+	// Estraggp i nomi degli anime dall'HTML
 	animeSearchData *baseData = extractAnimeName(searchDataResult, line, divFound);
 	free(searchDataResult);
 
@@ -84,12 +82,15 @@ int main () {
 	int selected = selectAnime(baseData);
 	// Controllo che l'utente non voglia chiudere il programma
 	if (selected == -1) {
-		// Riavvio il programma se -1
+		// Gestisco un '\n' che permane dopo l'inserimento di '-1', non posso inserirlo nella funzione
+		// oppure mi crea errori con l'output dell'ultimo anime trovato
+		getchar();
 		free(baseData);
 		main();
 	}
 	
-	// Scarico la pagina di redirect dell'anime selezionato
+	// Scarico la pagina di redirect dell'anime selezionato, e' un path che identifica l'anime ma non gli episodi di esso
+	// URL ... /search?keyword?= ... / nome_Anime /
 	// Il return e' il nome del file creato che viene usato per creare il path del file da leggere
 	path = createPath(downloadRedirectPage(baseData, selected));
 
@@ -97,14 +98,15 @@ int main () {
 	char *redirectContent = extractInMemoryFromFile(path, true);
 	free(path);
 
-	// Ottengo il link diretto alla pagina dell'anime (estratto del redirect)
+	// Ottengo il link diretto alla pagina dell'anime, ovvero quello con l'ID del primo episodio
+	// URL ... /search?keyword?= ... / nome_Anime / ID
 	char *pageDirectLink = getPageLink(redirectContent);
 	free(redirectContent);
 
 	// Creo il comando per scaricare la pagina corretta e lo eseguo
 	path = createPath(downloadCorrectPage(pageDirectLink));
 
-	// Ottengo il contenuto della pagina dal file ed elimino lo stesso
+	// Ottengo il contenuto della pagina dal file ed elimino il file residuo
 	char *pageContent = extractInMemoryFromFile(path, true);
 	free(path);
 
@@ -112,18 +114,18 @@ int main () {
 	line = 0;
 	char **pageDataResult = createMatrixByEscapeCharacter(pageContent, "\n", &line);
 
-	// Ottengo una struttura contenente le estensioni dei singoli episodi e il numero delle stesse
+	// Ottengo una struttura contenente le estensioni dei singoli episodi e il loro numero
 	animeEpisodeData *lastData = getEpisodeExtension(pageDataResult, line);
 	// Controllo buona uscita
 	free(pageDataResult);
 	if (lastData->numberOfEpisode == -1) {
-		// Errore, nessun episodio trovato
+		// Errore, nessun episodio trovato, probabilmente server ID differente da quello usato nella ricerca
 		// Catturo il carattere nell'stdin e riavvio il main()
 		getchar();
 		main();
 	}
 
-	// Creo una struct con tutte le opzioni necessarie per il download, argc/argv passati solo per un successivo utilizzo
+	// Creo una struct con tutte le opzioni necessarie per il download
 	downloadOption *settings = downloadMenu(baseData->correctAnimeName[selected], lastData->numberOfEpisode);
 
 	// Chiamo l'ultima funzione del main che si occuperà di richiamare a sua volta funzioni annidate
@@ -144,7 +146,7 @@ void starting () {
 	printf("########################################################\n");
 	printf("#                                                      #\n");
 	printf("#                      " ANSI_COLOR_GREEN "Ani-Loader" ANSI_COLOR_RESET "                      #\n");
-	printf("#                        v. 1.7                        #\n");
+	printf("#                       v. 1.7.1                       #\n");
 	printf("#                                                      #\n");
 	printf("#            </>     - " ANSI_COLOR_GREEN "By Alchyon" ANSI_COLOR_RESET " -     </>            #\n");
 	printf("#             " ANSI_COLOR_CYAN "Telegram" ANSI_COLOR_RESET ": " ANSI_COLOR_CYAN "@AniLoaderUpdates" ANSI_COLOR_RESET "              #\n");
@@ -181,7 +183,7 @@ void optionMenu () {
 		
 		case '3':	printf(ANSI_COLOR_YELLOW "Controllo aggiornamenti in corso...\n" ANSI_COLOR_RESET);
 					CheckForUpdatesRoutine();
-					printf(ANSI_COLOR_GREEN "Aggiornamento completato." ANSI_COLOR_RESET);
+					printf(ANSI_COLOR_GREEN "Aggiornamento completato.\n" ANSI_COLOR_RESET);
 					break;
 		
 		case 27:	exit(-4);
@@ -190,7 +192,7 @@ void optionMenu () {
 	switch (option) {
 		case '1':
 		case '2':
-		case '3':	printf("\nPremere INVIO per continuare...");
+		case '3':	printf("Premere INVIO per continuare...");
 					while (option = getch() != 13 && option != EOF);
 					system(clearScreen);
 
@@ -205,9 +207,9 @@ void optionMenu () {
 
 char *insertName () {
 	// Allocazione memoria per il nome
-	char *name = (char *) malloc(sizeof(char) * 101);
+	char *name = (char *) calloc(101, sizeof(char));
 	if (name == NULL) {
-		perror("malloc");
+		perror("calloc");
 		_exit(-2);
 	}
 
@@ -222,9 +224,6 @@ char *insertName () {
 	// Elimino il '\n' letto con fgets()
 	name[strlen(name) - 1] = '\0';
 
-	// Svuoto il buffer in ingresso a causa di fgets()
-	fflush(stdin);
-
 	// Essendo una richiesta HTTP, il nome non puo' contenere spazi che verranno quindi rimpiazzati dal segno '+'
 	for (unsigned int i = 0; i < strlen(name); i++) {
 		if (name[i] == ' ')
@@ -236,13 +235,13 @@ char *insertName () {
 
 void searchAnimeByName (char* name) {
 	// Creazione comando
-	char *command = (char *) malloc(sizeof(char) * (strlen(name) + 100));
+	char *command = (char *) calloc(strlen(name) + 100, sizeof(char));
 	if (command == NULL) {
-		perror("malloc");
+		perror("calloc");
 		_exit(-2);
 	}
 
-	sprintf(command, "curl -s \"https://www.animeworld.so/search?keyword=%s\" > \"%s\"", name, createPath("search.txt"));
+	sprintf(command, "curl -s \"%s/search?keyword=%s\" > \"%s\"", URL, name, createPath("search.txt"));
 
 	system(command);
 	free(command);
@@ -262,11 +261,7 @@ int searchAnimeDiv (char **searchDataResult, int line) {
 
 animeSearchData *extractAnimeName (char **searchDataResult, int line, int divFound) {
 	int posUno = 0, posDue = 0;
-	char *extract = (char *) malloc(sizeof(char));
-	if (extract == NULL) {
-		perror("malloc");
-		_exit(-2);
-	}
+	char *extract = NULL;
 
 	// Allocazione struttura e puntatori interni, controllo errori
 	animeSearchData *asd = (animeSearchData *) malloc(sizeof(animeSearchData));
@@ -296,9 +291,9 @@ animeSearchData *extractAnimeName (char **searchDataResult, int line, int divFou
 		char *poster = strstr(searchDataResult[i], "\" class=\"poster\"");
 		if (poster != NULL) {
 			// Creo una variabile di appoggio dinamica
-			extract = (char *) malloc(sizeof(char) * (strlen(searchDataResult[i]) + 1));
+			extract = (char *) calloc(strlen(searchDataResult[i]) + 1, sizeof(char));
 			if (extract == NULL) {
-				perror("malloc");
+				perror("calloc");
 				_exit(-2);
 			}
 
@@ -315,11 +310,10 @@ animeSearchData *extractAnimeName (char **searchDataResult, int line, int divFou
 					posDue = k;
 			}
 
-			// Allocazione variabile, di base sarebbe un +1 ma crea errori di memoria, con un +10 si dimostra valido, +20 per sicurezza
-			// Visto che al massimo si possono salvare 40 anime, lo "spreco" non e' maggiore di 80 byte.
-			asd->findAnimeLink[asd->numberOfAnime] = (char *) malloc(sizeof(char) * (posDue - posUno + 20));
+			// Allocazione variabile, di base e' un +1, se da errori in qualche modo, aumentare a +10
+			asd->findAnimeLink[asd->numberOfAnime] = (char *) calloc(posDue - posUno + 1, sizeof(char));
 			if (asd->findAnimeLink[asd->numberOfAnime] == NULL) {
-				perror("malloc");
+				perror("calloc");
 				_exit(-2);
 			}
 
@@ -337,7 +331,7 @@ animeSearchData *extractAnimeName (char **searchDataResult, int line, int divFou
 			char *alter = strstr(searchDataResult[i + 1], "alt=\"");
 			if (alter != NULL) {
 				// Uso sempre la variabile di appoggio
-				extract = (char *) realloc(extract, sizeof(char) * (strlen(searchDataResult[i + 1]) + 1));
+				extract = (char *) realloc(extract, sizeof(char) * (strlen(searchDataResult[i + 1]) + 10));
 				strcpy(extract, alter);
 
 				for (unsigned int k = 0; k < strlen(extract); k++) {
@@ -352,10 +346,10 @@ animeSearchData *extractAnimeName (char **searchDataResult, int line, int divFou
 						posDue = k;
 				}
 
-				// Allocazione variabile
-				asd->correctAnimeName[asd->numberOfAnime] = (char *) malloc(sizeof(char) * (posDue - posUno + 1));
+				// Allocazione variabile, stesso discorso di sopra, +1 per correttezza, +10 per sicurezza
+				asd->correctAnimeName[asd->numberOfAnime] = (char *) calloc(posDue - posUno + 1, sizeof(char));
 				if (asd->correctAnimeName[asd->numberOfAnime] == NULL) {
-					perror("malloc");
+					perror("calloc");
 					_exit(-2);
 				}
 
@@ -383,11 +377,7 @@ animeSearchData *extractAnimeName (char **searchDataResult, int line, int divFou
 
 void convertAnimeName (animeSearchData *baseData) {
 	// Dichiarazione puntatore
-	char *toConvert = (char *) malloc(sizeof(char));
-	if (toConvert == NULL) {
-		perror("malloc");
-		_exit(-2);
-	}
+	char *toConvert = NULL;
 
 	for (int count = 0; count < baseData->numberOfAnime; count++) {
 		// Alloco la giusta quantita' con realloc()
@@ -485,8 +475,7 @@ bool printFindAnime (animeSearchData *baseData) {
 		// Se gli anime sono esattamente 40 (ricerca poco precisa)
 		if (baseData->numberOfAnime == 40) {
 			// TO-DO Piu' di una pagina disponibile, update futuro ?
-			printf("\n");
-			printf("E' possibile che alcuni anime non vengano mostrati.\n");
+			printf("\nE' possibile che alcuni anime non vengano mostrati.\n");
 			printf("La prossima volta si consiglia di provare con una ricerca piu' precisa!\n");
 		}
 	}
@@ -505,8 +494,8 @@ int selectAnime (animeSearchData *baseData) {
 			printFindAnime(baseData);
 		}
 
-		printf("\nQuale anime vuoi scaricare? Digita il numero a lato oppure inserisci -1 per riavviare il programma!\n");
-		printf("Scelta: ");
+		// Nota: il %c serve a grabbare il "\n" derivante dall'invio
+		printf("\nQuale anime vuoi scaricare? Digita il numero a lato oppure inserisci -1 per riavviare il programma!\nScelta: ");
 		printf(ANSI_COLOR_YELLOW);
 		scanf("%d", &selected);
 		printf(ANSI_COLOR_RESET);
@@ -524,13 +513,14 @@ int selectAnime (animeSearchData *baseData) {
 }
 
 char *downloadRedirectPage (animeSearchData *baseData, int selected) {
-	char *command = (char *) malloc(sizeof(char) * (strlen(baseData->findAnimeLink[selected]) + 300));
+	char *command = (char *) calloc(strlen(baseData->findAnimeLink[selected]) + 300, sizeof(char));
 	if (command == NULL) {
-		perror("malloc");
+		perror("calloc");
 		_exit(-2);
 	}
 
-	sprintf(command, "curl -s \"https://www.animeworld.so%s\" > \"%s\"", baseData->findAnimeLink[selected], createPath("redirect.txt"));
+	// Concateno in una stringa il comando da eseguire
+	sprintf(command, "curl -s \"%s%s\" > \"%s\"", URL, baseData->findAnimeLink[selected], createPath("redirect.txt"));
 
 	system(command);
 	free(command);
@@ -539,9 +529,9 @@ char *downloadRedirectPage (animeSearchData *baseData, int selected) {
 }
 
 char *getPageLink (char *redirectContent) {
-	char *momentCopy = (char *) malloc(sizeof(char) * (strlen(redirectContent) + 1));
+	char *momentCopy = (char *) calloc(strlen(redirectContent) + 1, sizeof(char));
 	if (momentCopy == NULL) {
-		perror("malloc");
+		perror("calloc");
 		_exit(-2);
 	}
 
@@ -557,13 +547,13 @@ char *getPageLink (char *redirectContent) {
 }
 
 char *downloadCorrectPage (char *pageDirectLink) {
-	char *command = (char *) malloc(sizeof(char) * (strlen(pageDirectLink) + 300));
+	char *command = (char *) calloc(strlen(pageDirectLink) + 300, sizeof(char));
 	if (command == NULL) {
-		perror("malloc");
+		perror("calloc");
 		_exit(-2);
 	}
 
-	sprintf(command, "curl -s \"https://www.animeworld.so%s\" > \"%s\"", pageDirectLink, createPath("page.txt"));
+	sprintf(command, "curl -s \"%s%s\" > \"%s\"", URL, pageDirectLink, createPath("page.txt"));
 
 	system(command);
 	free(command);
@@ -573,11 +563,7 @@ char *downloadCorrectPage (char *pageDirectLink) {
 
 animeEpisodeData *getEpisodeExtension (char **pageDataResult, int line) {
 	bool noData = true;
-	char *moment = (char *) malloc(sizeof(char));
-	if (moment == NULL) {
-		perror("malloc");
-		_exit(-2);
-	}
+	char *moment;
 
 	// Dichiaro e alloco la struttura che conterra' i dati calcolati dalla funzione
 	animeEpisodeData *episodeData = (animeEpisodeData *) malloc(sizeof(animeEpisodeData));
@@ -586,8 +572,8 @@ animeEpisodeData *getEpisodeExtension (char **pageDataResult, int line) {
 		_exit(2);
 	}
 
-	// Fucking OnePiece and Detective Conan that have 1000+ episode!!!
-	// 18/12/2023, record: 1137
+	// One Piece e Detective Conan hanno 1000+ episodi e sono gli anime con il numero maggiore. Il 1500 sottostante e' dovuto alla loro esistenza.
+	// 21/02/2024, record: 1137 in Detective Conan
 	episodeData->animeEpisodeExtension = (char **) malloc(sizeof(char *) * 1500);
 	if (episodeData->animeEpisodeExtension == NULL) {
 		perror("malloc");
@@ -600,20 +586,20 @@ animeEpisodeData *getEpisodeExtension (char **pageDataResult, int line) {
 	for (int i = 0; i < line; i++) {
 		// Mancanza server di AnimeWorld > errore a prescindere
 		if (noData) {
-			char *server = strstr(pageDataResult[i], "data-name=\"9\">AnimeWorld Server");
+			char *server = strstr(pageDataResult[i], serverID);
 			if (server != NULL)
 				noData = false;
 		}
 
 		if (!noData) {
 			// Server trovato
-			char *serverID = strstr(pageDataResult[i], "data-name=\"9\" data-type=\"iframe\" data-id=\"9\"");
-			if (serverID != NULL) {
+			char *serverCheck = strstr(pageDataResult[i], "data-name=\"" serverNumber "\" data-type=\"iframe\" data-id=\"9\"");
+			if (serverCheck != NULL) {
 				// Ciclo per evitare di dover fare controlli separati
 				for (; i < line; i++) {
 					char *dataID = strstr(pageDataResult[i], "<a data-episode-id=\"");
 					if (dataID != NULL) {
-						// != NULL > episode
+						// != NULL > episodio trovato
 						// Rialloco lo spazio necessario a moment per contenere i dati
 						moment = (char *) realloc(moment, sizeof(char) * (strlen(pageDataResult[i]) + 1));
 						strcpy(moment, pageDataResult[i]);
@@ -626,11 +612,11 @@ animeEpisodeData *getEpisodeExtension (char **pageDataResult, int line) {
 						token = strtok(NULL, "\"");
 						token = strtok(NULL, "\"");
 
-						// Alloco l'array che conterra' l'estensione
+						// Alloco l'array che conterra' l'estensione, il "+10" e' dovuto al fatto che alcuni ID hanno una dimensione > 5
 						// Ottengo l'ID dal tag "data-id"
-						episodeData->animeEpisodeExtension[episodeData->numberOfEpisode] = (char *) malloc(sizeof(char) * (strlen(token) + 10));
+						episodeData->animeEpisodeExtension[episodeData->numberOfEpisode] = (char *) calloc(strlen(token) + 10, sizeof(char));
 						if (episodeData->animeEpisodeExtension[episodeData->numberOfEpisode] == NULL) {
-							perror("malloc");
+							perror("calloc");
 							_exit(-2);
 						}
 
@@ -638,15 +624,9 @@ animeEpisodeData *getEpisodeExtension (char **pageDataResult, int line) {
 						episodeData->numberOfEpisode++;
 
 						// Controllo se sono presenti ulteriori div successivi
-						char *linePlus = strstr(pageDataResult[i + 1], "</ul>");
-						if (linePlus != NULL) {
-							// != NULL > more DIV?
-							char *linePlusPlus = strstr(pageDataResult[i + 2], "<a data-episode-id=\"");
-							if (linePlusPlus == NULL) {
-								// == NULL > NO more DIV
-								i = line;
-								break;
-							}
+						if (strstr(pageDataResult[i + 1], "</ul>") != NULL && strstr(pageDataResult[i + 2], "<a data-episode-id=\"") == NULL) {
+							i = line;
+							break;
 						}
 					}
 				}
@@ -671,7 +651,7 @@ animeEpisodeData *getEpisodeExtension (char **pageDataResult, int line) {
 	return episodeData;
 }
 
-downloadOption *downloadMenu (char *name, int numberOfAnime) {
+downloadOption *downloadMenu (char *name, int numberOfEpisode) {
 	// Allocazione struttura per valore di return
 	downloadOption *option = (downloadOption *) malloc(sizeof(downloadOption));
 	if (option == NULL) {
@@ -681,9 +661,11 @@ downloadOption *downloadMenu (char *name, int numberOfAnime) {
 
 	// Setto a false dei parametri che necessitano di inizializzazione
 	option->nameEpisodeChange = false;
+	option->firstEpisode = -1;
+	option->secondEpisode = -1;
 
 	system(clearScreen);
-	printf("Sono disponibili " ANSI_COLOR_GREEN "%d" ANSI_COLOR_RESET " episodi per \"" ANSI_COLOR_GREEN "%s" ANSI_COLOR_RESET "\"\n", numberOfAnime, name);
+	printf("Sono disponibili " ANSI_COLOR_GREEN "%d" ANSI_COLOR_RESET " episodi per \"" ANSI_COLOR_GREEN "%s" ANSI_COLOR_RESET "\"\n", numberOfEpisode, name);
 	printf("Opzioni disponibili: \n");
 	printf(ANSI_COLOR_YELLOW "INVIO" ANSI_COLOR_RESET " -- > Scarica tutti gli episodi\n");
 	printf(ANSI_COLOR_YELLOW "1" ANSI_COLOR_RESET "     -- > Scarica un singolo episodio\n");
@@ -694,102 +676,99 @@ downloadOption *downloadMenu (char *name, int numberOfAnime) {
 
 	printf("Scelta: ");
 	char choice = getch();
+	getchar();
 
 	printf("\n");
 	switch (choice) {
 		case '\n':
-		case '\r':
-			// Tutti gli episodi
-			option->option = 0;
-			break;
+		case '\r':	// Tutti gli episodi
+					option->option = 0;
+					option->firstEpisode = 0;
+					option->secondEpisode = numberOfEpisode;
+					break;
 
-		case '1':
-			// Singolo episodio
-			option->option = 1;
-			do
-			{
-				printf("Quale episodio vuoi scaricare? [" ANSI_COLOR_GREEN "1" ANSI_COLOR_RESET " - " ANSI_COLOR_GREEN "%d" ANSI_COLOR_RESET "]: ", numberOfAnime);
+		case '1':	// Singolo episodio
+					option->option = 1;
+					do {
+						printf("Quale episodio vuoi scaricare? [" ANSI_COLOR_GREEN "1" ANSI_COLOR_RESET " - " ANSI_COLOR_GREEN "%d" ANSI_COLOR_RESET "]: ", numberOfEpisode);
 
-				printf(ANSI_COLOR_YELLOW);
-				scanf("%d", &option->singleEpisode);
-				printf(ANSI_COLOR_RESET);
+						printf(ANSI_COLOR_YELLOW);
+						scanf("%d", &option->firstEpisode);
+						printf(ANSI_COLOR_RESET);
 
-				option->singleEpisode--;
-			} while (option->singleEpisode < 0 || option->singleEpisode > numberOfAnime - 1);
-			break;
+						option->firstEpisode--;
+					} while (option->firstEpisode < 0 || option->firstEpisode > numberOfEpisode - 1);
 
-		case '2':
-			// Range X -> Y di episodi
-			option->option = 2;
-			do {
-				printf("Seleziona da dove iniziare scaricare [" ANSI_COLOR_GREEN "1" ANSI_COLOR_RESET " - " ANSI_COLOR_GREEN "%d" ANSI_COLOR_RESET "]: ", numberOfAnime);
+					option->secondEpisode = option->firstEpisode + 1;
+					break;
 
-				printf(ANSI_COLOR_YELLOW);
-				scanf("%d", &option->firstEpisode);
-				printf(ANSI_COLOR_RESET);
+		case '2':	// Range X -> Y di episodi
+					option->option = 2;
+					do {
+						printf("Seleziona da dove iniziare scaricare [" ANSI_COLOR_GREEN "1" ANSI_COLOR_RESET " - " ANSI_COLOR_GREEN "%d" ANSI_COLOR_RESET "]: ", numberOfEpisode);
 
-				option->firstEpisode--;
-			} while (option->firstEpisode < 0 || option->firstEpisode > numberOfAnime - 1);
+						printf(ANSI_COLOR_YELLOW);
+						scanf("%d", &option->firstEpisode);
+						printf(ANSI_COLOR_RESET);
 
-			// Controllo che il numero inserito non corrisponda al numero esatto di episodi
-			if (option->firstEpisode == numberOfAnime - 1) {
-				option->option = 1;
-				option->singleEpisode = option->firstEpisode;
-				break;
-			}
-			else {
-				// Mi assicuro che il secondo numero sia compreso tra quello inserito e il numero massimo
-				do {
-					printf("Seleziona fin dove scaricare [" ANSI_COLOR_GREEN "%d" ANSI_COLOR_RESET " - " ANSI_COLOR_GREEN "%d" ANSI_COLOR_RESET "]: ", option->firstEpisode + 1, numberOfAnime);
+						option->firstEpisode--;
+					} while (option->firstEpisode < 0 || option->firstEpisode > numberOfEpisode - 1);
 
-					printf(ANSI_COLOR_YELLOW);
-					scanf("%d", &option->secondEpisode);
-					printf(ANSI_COLOR_RESET);
+					// Controllo che il numero inserito non corrisponda al numero esatto di episodi, in quel caso scarico solo l'ultimo
+					if (option->firstEpisode == numberOfEpisode - 1) {
+						option->option = 1;
+						option->secondEpisode = option->firstEpisode + 1;
+						break;
+					}
+					else {
+						// Mi assicuro che il secondo numero sia compreso tra quello inserito e il numero massimo
+						do {
+							printf("Seleziona fin dove scaricare [" ANSI_COLOR_GREEN "%d" ANSI_COLOR_RESET " - " ANSI_COLOR_GREEN "%d" ANSI_COLOR_RESET "]: ", option->firstEpisode + 1, numberOfEpisode);
 
-					option->secondEpisode--;
-				} while (option->secondEpisode < option->firstEpisode || option->secondEpisode > numberOfAnime - 1);
-			}
+							printf(ANSI_COLOR_YELLOW);
+							scanf("%d", &option->secondEpisode);
+							printf(ANSI_COLOR_RESET);
+						} while (option->secondEpisode < option->firstEpisode || option->secondEpisode > numberOfEpisode);
+					}
 
-			// Se i due numeri sono uguali e' come dire di scaricare solo quello, gestisco la cosa
-			if (option->firstEpisode == option->secondEpisode) {
-				option->option = 1;
-				option->singleEpisode = option->firstEpisode;
-			}
-			break;
+					// Se i due numeri sono uguali e' come dire di scaricare solo quello, gestisco la cosa
+					if (option->firstEpisode == option->secondEpisode - 1) {
+						option->option = 1;
+						option->secondEpisode = option->firstEpisode + 1;
+					}
+					break;
 
-		case '3':
-			// Essendo il parametro "option" il valore di controllo, modifico questo e senza cambiare il codice, aggiungo
-			// alla funzione successiva le istruzioni per questa impostazione, sfruttando il codice precedentemente esistente
-			// per evitare duplicati, faccio il "download" delle informazioni ma camuffandolo all'interno di codice gia' presente.
-			option->option = 3;
-			break;
+		case '3':	// Essendo il parametro "option" il valore di controllo, modifico questo e, senza cambiare il codice, aggiungo
+					// alla funzione successiva le istruzioni per questa impostazione, sfruttando il codice precedentemente esistente
+					// per evitare duplicati, faccio il "download" delle informazioni ma camuffandolo all'interno di codice gia' presente.
+					option->option = 3;
+					break;
 
-		case 27:
-			free(option);
-			getchar();
-			main();
-			break;
+		case 27:	// ESC -> riavvio
+					free(option);
+					getchar();
+					main();
+					break;
 
-		default:
-			system(clearScreen);
-			_exit(-4);
-			break;
+		default:	system(clearScreen);
+					_exit(0);
+					break;
 	}
 
 	// Alloco il puntatore del nome
-	option->nameEpisode = (char *) malloc(sizeof(char) * 101);
+	option->nameEpisode = (char *) calloc(101, sizeof(char));
 	if (option->nameEpisode == NULL) {
-		perror("malloc");
+		perror("calloc");
 		_exit(-2);
 	}
 	// Alloco il puntatore della directory
-	option->downloadDirectory = (char *) malloc(sizeof(char) * 501);
+	option->downloadDirectory = (char *) calloc(501, sizeof(char));
 	if (option->downloadDirectory == NULL) {
-		perror("malloc");
+		perror("calloc");
 		_exit(-2);
 	}
 
-	// Modifica nome
+	// Modifica nome dei singoli episodi
 	do {
 		system(clearScreen);
 		printf("Vuoi cambiare il modo in cui gli episodi verranno salvati?\n");
@@ -806,31 +785,21 @@ downloadOption *downloadMenu (char *name, int numberOfAnime) {
 		printf(ANSI_COLOR_YELLOW);
 		fgets(option->nameEpisode, 100, stdin);
 		printf(ANSI_COLOR_RESET);
-		fflush(stdin);
 
 		// Utilizzo "Episodio" se non e' stato inserito un nome
 		if (strlen(option->nameEpisode) == 1)
 			strcpy(option->nameEpisode, "Episodio");
 		else {
-			// Per evitare un getchar() successivo che crea problemi e trancia una lettera [Linux]
 			option->nameEpisodeChange = true;
 
 			// Correggo eventuali caratteri speciali non ammessi nei nomi ed elimino lo '\n' finale
 			option->nameEpisode[strlen(option->nameEpisode) - 1] = '\0';
 			for (unsigned int i = 0; i < strlen(option->nameEpisode); i++) {
 				// TO-DO optimize into function FixDirectoryName() into FixDataName() or FixFileName()
-				if (option->nameEpisode[i] == '\\' ||
-					option->nameEpisode[i] == '/' ||
-					option->nameEpisode[i] == ':' ||
-					option->nameEpisode[i] == '*' ||
-					option->nameEpisode[i] == '?' ||
-					option->nameEpisode[i] == '\"' ||
-					option->nameEpisode[i] == '<' ||
-					option->nameEpisode[i] == '>' ||
-					option->nameEpisode[i] == '|' ||
-					option->nameEpisode[i] == '{' ||
-					option->nameEpisode[i] == '}' ||
-					option->nameEpisode[i] == '~')
+				if (option->nameEpisode[i] == '\\' ||	option->nameEpisode[i] == '/' ||	option->nameEpisode[i] == ':' ||
+					option->nameEpisode[i] == '*' ||	option->nameEpisode[i] == '?' ||	option->nameEpisode[i] == '\"' ||
+					option->nameEpisode[i] == '<' ||	option->nameEpisode[i] == '>' ||	option->nameEpisode[i] == '|' ||
+					option->nameEpisode[i] == '{' ||	option->nameEpisode[i] == '}' ||	option->nameEpisode[i] == '~')
 
 					option->nameEpisode[i] = '_';
 			}
@@ -841,7 +810,6 @@ downloadOption *downloadMenu (char *name, int numberOfAnime) {
 
 	// Modifica directory
 	do {
-		fflush(stdin);
 		system(clearScreen);
 		printf("Vuoi cambiare la directory in cui verranno scaricati gli anime?\n");
 		printf("Di default saranno nella cartella \"" ANSI_COLOR_GREEN "Downloads" ANSI_COLOR_RESET "\".\n");
@@ -856,16 +824,14 @@ downloadOption *downloadMenu (char *name, int numberOfAnime) {
 
 		fgets(option->downloadDirectory, 400, stdin);
 		printf(ANSI_COLOR_RESET);
-		fflush(stdin);
 
 		// Utilizzo la directory di default se non e' stata modificata, premuto '\n'
 		// Passo "" in modo che la stringa di return contenga solo il path assoluto della cartella di download
 		if (strlen(option->downloadDirectory) == 1)
 			option->downloadDirectory[0] = '\0';
 
-			// Controllo che termini con uno slash o un backslash e controllo la presenza di caratteri non ammessi, in questo caso ripristino quella di default, piu' pratico
-			// del chiedere un nuovo inserimento, verra' implementato in un futuro
-			// TO-DO
+		// Controllo che termini con uno slash o un backslash e controllo la presenza di caratteri non ammessi, in questo caso ripristino quella di default, piu' pratico
+		// del chiedere un nuovo inserimento, verra' implementato in un futuro
 		else if (option->downloadDirectory[strlen(option->downloadDirectory)] != '\\' && option->downloadDirectory[strlen(option->downloadDirectory)] != '/') {
 			option->downloadDirectory[strlen(option->downloadDirectory) - 1] = '/';
 
@@ -875,13 +841,13 @@ downloadOption *downloadMenu (char *name, int numberOfAnime) {
 					case '<':	case '>':	case '|':
 					case '{':	case '}':	case '~':
 					
-					printf(ANSI_COLOR_RED "\nErrore!\n" ANSI_COLOR_RESET);
-					printf("Il nome della directory contiene dei caratteri non ammessi, ripristino la cartella di default!\n");
-					system("pause");
+						printf(ANSI_COLOR_RED "\nErrore!\n" ANSI_COLOR_RESET);
+						printf("Il nome della directory contiene dei caratteri non ammessi, ripristino la cartella di default!\n");
+						system("pause");
 
-					option->downloadDirectory[0] = '\0';
-					choice = 'E';
-					break;
+						option->downloadDirectory[0] = '\0';
+						choice = 'E';
+						break;
 				}
 		}
 	}
@@ -907,109 +873,63 @@ void downloadPrepare (animeEpisodeData *lastData, downloadOption *settings, char
 	// Puntatori per valori di return
 	char *directDownloadLink;
 
+	// Creo la directory, riduco le righe nello switch sottostante
+	if (settings->option == 0 || settings->option == 1 || settings->option == 2)
+		createDirectory(settings, name);
+
+	// Si ottimizza il tutto in meno righe ma il funzionamento rimane lo stesso del commit precedente
 	switch (settings->option) {
-		case 0:
-			// Creo la directory
-			createDirectory(settings, name);
-
-			// Scarico tutti gli episodi
-			printf(ANSI_COLOR_GREEN "Download in corso di %d episodi di \"" ANSI_COLOR_CYAN "%s" ANSI_COLOR_GREEN "\"" ANSI_COLOR_RESET "\n", lastData->numberOfEpisode, name);
-			for (int i = 0; i < lastData->numberOfEpisode; i++) {
-				printf("Download episodio %d\n", i + 1);
-
-				// Mi faccio ritornare il link al download diretto
-				directDownloadLink = getDirectEpisodeDownloadLink(pageDirectLink, lastData->animeEpisodeExtension[i]);
-
-				// Chiamo la funzione che gestisce la creazione del comando finale da eseguire
-				if (strcmp(directDownloadLink, "ERROR"))
-					downloadFile(lastData, settings, directDownloadLink, name, i);
-				else
-					printf(ANSI_COLOR_RED "Si e' verificato un errore per l'episodio %d" ANSI_COLOR_RESET "\n", i + 1);
-
-				// free
-				free(directDownloadLink);
-			}
-
-			break;
-
-		case 1:
-			// Creo la directory
-			createDirectory(settings, name);
-			
-			// Scarico un singolo episodio
-			printf(ANSI_COLOR_GREEN "Download in corso dell'episodio %d di \"" ANSI_COLOR_CYAN "%s" ANSI_COLOR_GREEN "\"" ANSI_COLOR_RESET "\n", settings->singleEpisode + 1, name);
-
-			// Mi faccio ritornare il link al download diretto
-			directDownloadLink = getDirectEpisodeDownloadLink(pageDirectLink, lastData->animeEpisodeExtension[settings->singleEpisode]);
-
-			// Chiamo la funzione che gestisce la creazione del comando finale da eseguire
-			if (strcmp(directDownloadLink, "ERROR"))
-				downloadFile(lastData, settings, directDownloadLink, name, settings->singleEpisode);
-			else
-				printf(ANSI_COLOR_RED "Si e' verificato un errore per l'episodio %d" ANSI_COLOR_RESET "\n", settings->singleEpisode + 1);
-
-			// free
-			free(directDownloadLink);
-
-			break;
-
-		case 2:
-			// Creo la directory
-			createDirectory(settings, name);
-
-			// Scarico fra i selezionati
-			printf(ANSI_COLOR_GREEN "Download in corso di %d episodi [%d -> %d] di \"" ANSI_COLOR_CYAN "%s" ANSI_COLOR_GREEN "\"" ANSI_COLOR_RESET "\n", settings->secondEpisode - settings->firstEpisode + 1, settings->firstEpisode + 1, settings->secondEpisode + 1, name);
-			for (int i = settings->firstEpisode; i <= settings->secondEpisode; i++) {
-				printf("Download episodio %d\n", i + 1);
-
-				// Mi faccio ritornare il link al download diretto
-				directDownloadLink = getDirectEpisodeDownloadLink(pageDirectLink, lastData->animeEpisodeExtension[i]);
-
-				// Chiamo la funzione che gestisce la creazione del comando finale da eseguire
-				if (strcmp(directDownloadLink, "ERROR"))
-					downloadFile(lastData, settings, directDownloadLink, name, i);
-				else
-					printf(ANSI_COLOR_RED "Si e' verificato un errore per l'episodio %d" ANSI_COLOR_RESET "\n", i + 1);
-
-				// free
-				free(directDownloadLink);
-			}
-
-			break;
+		case 0:	printf(ANSI_COLOR_GREEN "Download in corso di " ANSI_COLOR_CYAN "%d" ANSI_COLOR_GREEN " episodi di \"" ANSI_COLOR_CYAN "%s" ANSI_COLOR_GREEN "\"" ANSI_COLOR_RESET "\n", lastData->numberOfEpisode, name);
+				break;
 		
-		case 3:
-			system(clearScreen);
+		case 1:	printf(ANSI_COLOR_GREEN "Download in corso dell'episodio " ANSI_COLOR_CYAN "%d" ANSI_COLOR_GREEN " di \"" ANSI_COLOR_CYAN "%s" ANSI_COLOR_GREEN "\"" ANSI_COLOR_RESET "\n", settings->firstEpisode + 1, name);
+				break;
+		
+		case 2:	printf(ANSI_COLOR_GREEN "Download in corso di " ANSI_COLOR_CYAN "%d" ANSI_COLOR_GREEN " episodi [" ANSI_COLOR_CYAN "%d" ANSI_COLOR_GREEN " -> " ANSI_COLOR_CYAN "%d" ANSI_COLOR_GREEN "] di \"" ANSI_COLOR_CYAN "%s" ANSI_COLOR_GREEN "\"" ANSI_COLOR_RESET "\n", settings->secondEpisode - settings->firstEpisode, settings->firstEpisode + 1, settings->secondEpisode, name);
+				break;
+		
+		case 3:	system(clearScreen);
 
-			// Sistemo nome e directory finche' ho a disposizione l'accesso ai dati
-			if (!settings->nameEpisodeChange)
-				strcpy(settings->nameEpisode, "Episodio");
+				// Sistemo nome e directory finche' ho a disposizione l'accesso ai dati
+				if (!settings->nameEpisodeChange)
+					strcpy(settings->nameEpisode, "Episodio");
 
-			if (strlen(settings->downloadDirectory) == 0) {
-				strcat(settings->downloadDirectory, createPath(""));
-				strcat(settings->downloadDirectory, fixDirectoryName(name));
-				strcat(settings->downloadDirectory, "/");
-			}
+				if (strlen(settings->downloadDirectory) == 0)
+					sprintf(settings->downloadDirectory + strlen(settings->downloadDirectory), "%s%s/", createPath(""), fixDirectoryName(name));
 
-			addOnLoad(name, pageDirectLink, lastData->animeEpisodeExtension[0], settings->downloadDirectory, settings->nameEpisode);
-			main();
+				addOnLoad(name, pageDirectLink, lastData->animeEpisodeExtension[0], settings->downloadDirectory, settings->nameEpisode);
+				main();
+				break;
+	}
 
-			break;
+	// Download effettivo, parti comuni unite, printf() separati tramite switch sovrastante
+	for (int i = settings->firstEpisode; i < settings->secondEpisode; i++) {
+		printf("Download episodio %d\n", i + 1);
+
+		// Mi faccio ritornare il link al download diretto
+		directDownloadLink = getDirectEpisodeDownloadLink(pageDirectLink, lastData->animeEpisodeExtension[i]);
+
+		// Chiamo la funzione che gestisce la creazione del comando finale da eseguire
+		if (strcmp(directDownloadLink, "ERROR"))
+			downloadFile(lastData, settings, directDownloadLink, name, i);
+		else
+			printf(ANSI_COLOR_RED "Si e' verificato un errore per l'episodio %d" ANSI_COLOR_RESET "\n", i + 1);
+
+		// free
+		free(directDownloadLink);
 	}
 }
 
-void createDirectory(downloadOption *settings, char *name) {
+void createDirectory (downloadOption *settings, char *name) {
 	// Controllo se la directory e' stata modificata, in caso la creo
-	char *mkdir = (char *) malloc(sizeof(char) * (strlen(settings->downloadDirectory) + strlen(createPath("")) + strlen(name) + 100));
+	char *mkdir = (char *) calloc(strlen(settings->downloadDirectory) + strlen(createPath("")) + strlen(name) + 100, sizeof(char));
 	if (mkdir == NULL) {
-			perror("malloc");
+			perror("calloc");
 			_exit(-2);
 	}
 	
-	if (strlen(settings->downloadDirectory) != 0) {
-		strcpy(mkdir, "mkdir \"");
-		strcat(mkdir, settings->downloadDirectory);
-		strcat(mkdir, "\"");
-	}
+	if (strlen(settings->downloadDirectory) != 0)
+		sprintf(mkdir, "mkdir \"%s\"", settings->downloadDirectory);
 	else
 		sprintf(mkdir, "mkdir \"%s%s\"", createPath(""), fixDirectoryName(name));
 	
@@ -1020,13 +940,13 @@ void createDirectory(downloadOption *settings, char *name) {
 
 char *getDirectEpisodeDownloadLink (char *pageDirectLink, char *extension) {
 	// Creazione comando di download
-	char *downloadCommand = (char *) malloc(sizeof(char) * (strlen(extension) + strlen(pageDirectLink) + 200));
+	char *downloadCommand = (char *) calloc(strlen(extension) + strlen(pageDirectLink) + 200, sizeof(char));
 	if (downloadCommand == NULL) {
-		perror("malloc");
+		perror("calloc");
 		_exit(-2);
 	}
 
-	sprintf(downloadCommand, "curl -s \"https://www.animeworld.so%s%s\" > \"%s", pageDirectLink, extension, createPath("ep.txt\""));
+	sprintf(downloadCommand, "curl -s \"%s%s%s\" > \"%s", URL, pageDirectLink, extension, createPath("ep.txt\""));
 
 	// Scarico il file
 	system(downloadCommand);
@@ -1063,9 +983,9 @@ char *getDirectEpisodeDownloadLink (char *pageDirectLink, char *extension) {
 				}
 
 				// Alloco un pointer per il link, gli copio dentro il link corretto ed eseguo il return della funzione
-				char *returnLink = (char *) malloc(sizeof(char) * (posDue - posUno + 1));
+				char *returnLink = (char *) calloc(posDue - posUno + 1, sizeof(char));
 				if (returnLink == NULL) {
-					perror("malloc");
+					perror("calloc");
 					_exit(-2);
 				}
 
@@ -1083,35 +1003,24 @@ char *getDirectEpisodeDownloadLink (char *pageDirectLink, char *extension) {
 }
 
 void downloadFile (animeEpisodeData *lastData, downloadOption *settings, char *directDownloadLink, char *name, int i) {
-	// Per sprintf() del numero dell'episodio che deve scaricare
-	// 4 caratteri + 1 fine stringa, non esistono ancora anime con 10000 episodi!
-	char ep[5];
-
 	// Creo un comando curl che scarica l'episodio dal link ottenuto prima in caso il valore di return sia diverso da "ERROR"
-	char *downloadCommandLink = (char *) malloc(sizeof(char) * (strlen(directDownloadLink) + strlen(name) + 500));
+	char *downloadCommandLink = (char *) calloc(strlen(directDownloadLink) + strlen(name) + 500, sizeof(char));
 	if (downloadCommandLink == NULL) {
-		perror("malloc");
+		perror("calloc");
 		_exit(-2);
 	}
-	
-	sprintf(downloadCommandLink, "curl -L -# \"%s\" > \"", directDownloadLink);
 
 	// Controllo se la directory e' stata modificata
 	if (strlen(settings->downloadDirectory) != 0)
-		strcat(downloadCommandLink, settings->downloadDirectory);
-	else {
-		strcat(downloadCommandLink, createPath(""));
-		strcat(downloadCommandLink, fixDirectoryName(name));
-		strcat(downloadCommandLink, "/");
-	}
+		sprintf(downloadCommandLink, "curl -L -# \"%s\" > \"%s\0", directDownloadLink, settings->downloadDirectory);
+	else
+		sprintf(downloadCommandLink, "curl -L -# \"%s\" > \"%s%s/\0", directDownloadLink, createPath(""), fixDirectoryName(name));
 
 	// Controllo se il nome e' stato modificato
-	if (strlen(settings->nameEpisode) != 0) {
-		strcat(downloadCommandLink, settings->nameEpisode);
-		strcat(downloadCommandLink, " ");
-	}
+	if (strlen(settings->nameEpisode) != 0)
+		sprintf(downloadCommandLink + strlen(downloadCommandLink), "%s \0", settings->nameEpisode);
 	else
-		strcat(downloadCommandLink, "Episodio ");
+		sprintf(downloadCommandLink + strlen(downloadCommandLink), "Episodio \0");
 
 	// Gestione zeri nome del file
 	if (lastData->numberOfEpisode >= 99) {
@@ -1124,32 +1033,28 @@ void downloadFile (animeEpisodeData *lastData, downloadOption *settings, char *d
 	else if (i < 9)
 		strcat(downloadCommandLink, "0");
 
-	// Inserimento numero dell'episodio
-	sprintf(ep, "%d", i + 1);
-	strcat(downloadCommandLink, ep);
-
-	// Inserimento estensione del file
-	strcat(downloadCommandLink, ".mp4\"");
+	// Inserimento numero dell'episodio ed estensione del file
+	sprintf(downloadCommandLink + strlen(downloadCommandLink), "%d.mp4", i + 1);
 
 	// Comando di download
 	system(downloadCommandLink);
 	free(downloadCommandLink);
 }
 
-void addOnLoad(char *name, char *pageDirectLink, char *ext, char *downloadDirectory, char *nameEpisode) {
+void addOnLoad (char *name, char *pageDirectLink, char *ext, char *downloadDirectory, char *nameEpisode) {
 	// Si gestisce l'aggiunta delle informazioni dell'anime selezionato alla lista degli anime che vengono controllati on-boot.
 	// Se sono qui, teoricamente ho gia' i dati richiesti per la creazione del file, quindi non dovrebbero servire ulteriori modifiche, al massimo una veloce
 	// manipolazione di stringhe su qualche info, che pero' non viene piu' riutilizzata al termine di questa funzione, in quanto void!
 	
 	// Step 1:
 	// 	- Creazione della cartella "AniLoader" in "... AppData/Roaming"
-	char *appdataFolder = (char *) malloc(sizeof(char) * 200);
+	char *appdataFolder = (char *) calloc(200, sizeof(char));
 	if (appdataFolder == NULL) {
-		perror("malloc");
+		perror("calloc");
 		_exit(-2);
 	}
 	
-	sprintf(appdataFolder, "mkdir \"%s\\AniLoader\"", getenv("APPDATA"));
+	sprintf(appdataFolder, "mkdir \"%s/AniLoader\"", getenv("APPDATA"));
 	system(appdataFolder);
 	system(clearScreen);
 
@@ -1157,16 +1062,16 @@ void addOnLoad(char *name, char *pageDirectLink, char *ext, char *downloadDirect
 	//	- Controllare se l'anime e' gia' presente nei preferiti
 	// Per fare questo, si usa un formato standard di nomi, ovvero nomeAnime.cfu, questo file verra' letto e, se il controllo da esito positivo, verra' chiesto se
 	// eliminarlo, sovrascriverlo o riavviare il programma.
-	char *fileName = (char *) malloc(sizeof(char) * (strlen(appdataFolder) + strlen(name) + 50));
+	char *fileName = (char *) calloc(strlen(appdataFolder) + strlen(name) + 50, sizeof(char));
 	if (fileName == NULL) {
-		perror("malloc");
+		perror("calloc");
 		_exit(-2);
 	}
 
 	// Creazione stringa per il file dell'anime corrente
-	sprintf(fileName, "%s\\AniLoader\\%s.cfu", getenv("APPDATA"), fixDirectoryName(name));
+	sprintf(fileName, "%s/AniLoader/%s.cfu", getenv("APPDATA"), fixDirectoryName(name));
 	free(appdataFolder);
-	
+
 	FILE *f = fopen(fileName, "r");
 	if (f != NULL) {
 		printf(ANSI_COLOR_RED "Errore: questo anime e' gia' stato aggiunto ai preferiti!\n" ANSI_COLOR_RESET);
@@ -1192,7 +1097,7 @@ void addOnLoad(char *name, char *pageDirectLink, char *ext, char *downloadDirect
 	// Step 5:
 	//	- Scrittura nome su file di elenco
 	fileName[0] = '\0';
-	sprintf(fileName, "%s\\AniLoader\\_data.summary", getenv("APPDATA"));
+	sprintf(fileName, "%s/AniLoader/_data.summary", getenv("APPDATA"));
 	
 	f = fopen(fileName, "a");
 	if (f != NULL) {

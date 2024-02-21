@@ -8,11 +8,11 @@
 #include "utilities.h"
 #include "cfu.h"
 
-void CheckForUpdatesRoutine() {
+void CheckForUpdatesRoutine () {
 	// Steps:
 	//	1:	Read summary (getLibrary())
 	//	2:  Variables assignments for step 3 (getLibrary())
-	//	3:	foreach summaryData entried
+	//	3:	foreach summaryData entries
 	//	4:	calls to function to download, based on data
 	//  5:	update .cfu file
 	const char *appdata = getenv("APPDATA");
@@ -23,9 +23,9 @@ void CheckForUpdatesRoutine() {
 	// #3
 	for (int i = 0; i < summaryLine; i++) {
 		// Read from file, no reason to allocate, elaborated one by one.
-		char *filePath = (char *) malloc(sizeof(char) * (strlen(summaryData[i]) + strlen(appdata) + 50));
+		char *filePath = (char *) calloc(strlen(summaryData[i]) + strlen(appdata) + 50, sizeof(char));
 		if (filePath == NULL) {
-			perror("malloc");
+			perror("calloc");
 			_exit(2);
 		}
 
@@ -77,18 +77,38 @@ void CheckForUpdatesRoutine() {
 			_exit(-2);
 		}
 
+		// Numero anime da scaricare, modificato in seguito ai cambiamenti
+		// apportati al main code
+		switch (nEpi) {
+			case 0:	// Li scarico tutti
+					dwlOpt->option = 0;
+					dwlOpt->firstEpisode = 0;
+					dwlOpt->secondEpisode = lastData->numberOfEpisode;
+					break;
+			
+			case 1:	// Scarico l'ultimo, ovvero e' uscito un nuovo episodio dall'ultimo controllo
+					dwlOpt->option = 1;
+					dwlOpt->firstEpisode = lastData->numberOfEpisode;
+					dwlOpt->secondEpisode = dwlOpt->firstEpisode + 1;
+					break;
+		}
+
 		// Numero anime da scaricare
-		if (nEpi == 0)
+		if (nEpi == 0) {
 			// Li scarico tutti
 			dwlOpt->option = 0;
+			dwlOpt->firstEpisode = 0;
+			dwlOpt->secondEpisode = lastData->numberOfEpisode;
+		}
 		else if (lastData->numberOfEpisode - nEpi == 1) {
 			dwlOpt->option = 1;
-			dwlOpt->singleEpisode = nEpi;
+			dwlOpt->firstEpisode = nEpi;
+			dwlOpt->secondEpisode = dwlOpt->firstEpisode + 1;
 		}
 		else {
 			dwlOpt->option = 2;
 			dwlOpt->firstEpisode = nEpi;
-			dwlOpt->secondEpisode = lastData->numberOfEpisode - 1;
+			dwlOpt->secondEpisode = lastData->numberOfEpisode;
 		}
 
 		// Alloco il puntatore del nome
@@ -112,9 +132,9 @@ void CheckForUpdatesRoutine() {
 		strcpy(dwlOpt->nameEpisode, fileAnimeData[5]);
 
 		// Devo crearmi una copia per fileAnimeData[2] perchè downloadPrepare() la sovrascrive
-		char *copy = (char *) malloc(sizeof(char) * (strlen(fileAnimeData[2]) + 1));
+		char *copy = (char *) calloc(strlen(fileAnimeData[2]) + 1, sizeof(char));
 		if (copy == NULL) {
-			perror("malloc");
+			perror("calloc");
 			_exit(-2);
 		}
 		strcpy(copy, fileAnimeData[2]);
@@ -140,14 +160,14 @@ void CheckForUpdatesRoutine() {
 	free(summaryData);
 }
 
-char **getLibrary(int *liner) {
+char **getLibrary (int *liner) {
 	// "liner" verra' sovrascritto con il numero esatto di righe, che corrisponde
 	// al numero di file presenti, ovvero al numero di preferiti esistenti
 	const char *appdata = getenv("APPDATA");
 
-	char *summaryFile = (char *) malloc(sizeof(char) * (strlen(appdata) + 50));
+	char *summaryFile = (char *) calloc(strlen(appdata) + 50, sizeof(char));
 	if (summaryFile == NULL) {
-		perror("malloc");
+		perror("calloc");
 		_exit(-2);
 	}
 
@@ -165,7 +185,7 @@ char **getLibrary(int *liner) {
 	return summaryData;
 }
 
-char **printLibrary(int *liner) {
+char **printLibrary (int *liner) {
 	int line = 0;
 	char **lib = getLibrary(&line);
 
@@ -182,7 +202,7 @@ char **printLibrary(int *liner) {
 	return lib;
 }
 
-int delLibrary() {
+int delLibrary () {
 	int line = 0;
 	char **lib = printLibrary(&line);
 	
@@ -198,14 +218,16 @@ int delLibrary() {
 	} while (choice != 'Y' && choice != 'N');
 
 	// Evito un'annidamento escludendo a priori la possibilita' di N
-	if (choice == 'N')
+	if (choice == 'N') {
+		printf("\n");
 		return 0;
+	}
 
 	// Aggiornamento del file
 	const char *appdata = getenv("APPDATA");
-	char *summaryFile = (char *) malloc(sizeof(char) * (strlen(appdata) + 50));
+	char *summaryFile = (char *) calloc(strlen(appdata) + 50, sizeof(char));
 	if (summaryFile == NULL) {
-		perror("malloc");
+		perror("calloc");
 		_exit(-2);
 	}
 
@@ -222,6 +244,9 @@ int delLibrary() {
 			scanf("%d", &toDel);
 		} while (toDel < -1 || toDel > line);
 
+		// Dopo lo scanf(), intercetto il '\n' che rimane in memoria per prevenire errori nella ricerca
+		getchar();
+		
 		// L'utente non vuole piu' eliminare preferiti
 		if (toDel == -1)
 			return 0;
@@ -238,9 +263,9 @@ int delLibrary() {
 		
 		fclose(f);
 		
-		char *delFile = (char *) malloc(sizeof(char) * (strlen(appdata) + 50));
+		char *delFile = (char *) calloc(strlen(appdata) + 50, sizeof(char));
 		if (delFile == NULL) {
-			perror("malloc");
+			perror("calloc");
 			_exit(-2);
 		}
 

@@ -13,6 +13,9 @@
 
 #define clearScreen "cls"
 #define BPATH "C:/Users/"
+#define URL "https://www.animeworld.so"
+#define serverID "data-name=\"9\">AnimeWorld Server"
+#define serverNumber "9"
 
 // Windows 10 - versione generica
 #define _WIN32_WINNT_WIN10 0x0A00
