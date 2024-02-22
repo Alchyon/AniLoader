@@ -1,3 +1,6 @@
+// Aggiunta ai preferiti
+void addOnLoad(char *, char *, char *, char *, char *);
+
 // Funzione di base per il controllo dei preferiti
 void CheckForUpdatesRoutine();
 

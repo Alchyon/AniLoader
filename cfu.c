@@ -8,6 +8,77 @@
 #include "utilities.h"
 #include "cfu.h"
 
+void addOnLoad (char *name, char *pageDirectLink, char *ext, char *downloadDirectory, char *nameEpisode) {
+	// Si gestisce l'aggiunta delle informazioni dell'anime selezionato alla lista degli anime che vengono controllati on-boot.
+	// Se sono qui, teoricamente ho gia' i dati richiesti per la creazione del file, quindi non dovrebbero servire ulteriori modifiche, al massimo una veloce
+	// manipolazione di stringhe su qualche info, che pero' non viene piu' riutilizzata al termine di questa funzione, in quanto void!
+	
+	// Step 1:
+	// 	- Creazione della cartella "AniLoader" in "... AppData/Roaming"
+	char *appdataFolder = (char *) calloc(200, sizeof(char));
+	if (appdataFolder == NULL) {
+		perror("calloc");
+		_exit(-2);
+	}
+	
+	sprintf(appdataFolder, "mkdir \"%s/AniLoader\"", getenv("APPDATA"));
+	system(appdataFolder);
+	system(clearScreen);
+
+	// Step 2:
+	//	- Controllare se l'anime e' gia' presente nei preferiti
+	// Per fare questo, si usa un formato standard di nomi, ovvero nomeAnime.cfu, questo file verra' letto e, se il controllo da esito positivo, verra' chiesto se
+	// eliminarlo, sovrascriverlo o riavviare il programma.
+	char *fileName = (char *) calloc(strlen(appdataFolder) + strlen(name) + 50, sizeof(char));
+	if (fileName == NULL) {
+		perror("calloc");
+		_exit(-2);
+	}
+
+	// Creazione stringa per il file dell'anime corrente
+	sprintf(fileName, "%s/AniLoader/%s.cfu", getenv("APPDATA"), fixDirectoryName(name));
+	free(appdataFolder);
+
+	FILE *f = fopen(fileName, "r");
+	if (f != NULL) {
+		printf(ANSI_COLOR_RED "Errore: questo anime e' gia' stato aggiunto ai preferiti!\n" ANSI_COLOR_RESET);
+		system("pause");
+
+		// Riavvio al main pulendo le variabili usate
+		fclose(f);
+		free(fileName);
+
+		main();
+	}
+	
+	// Se sono qui significa che il file NON esiste e che quindi puo' essere creato e scritto
+	// Step 3:
+	//	- Creazione del file per CFU
+	f = fopen(fileName, "w");
+
+	// Step 4:
+	//	- Scrittura dati su file anime
+	fprintf(f, "6\n%s\n%s%s\n0\n%s\n%s\n", pageDirectLink, pageDirectLink, ext, downloadDirectory, nameEpisode);
+	fclose(f);
+	
+	// Step 5:
+	//	- Scrittura nome su file di elenco
+	fileName[0] = '\0';
+	sprintf(fileName, "%s/AniLoader/_data.summary", getenv("APPDATA"));
+	
+	f = fopen(fileName, "a");
+	if (f != NULL) {
+		// Aggiornamento elenco
+		fprintf(f, "%s.cfu\n", fixDirectoryName(name));
+		fclose(f);
+	}
+
+	free(fileName);
+
+	printf(ANSI_COLOR_GREEN "Anime aggiunto correttamente alla lista dei preferiti.\n" ANSI_COLOR_RESET);
+	system("pause");
+}
+
 void CheckForUpdatesRoutine () {
 	// Steps:
 	//	1:	Read summary (getLibrary())

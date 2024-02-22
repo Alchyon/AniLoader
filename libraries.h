@@ -8,7 +8,6 @@
 
 // Windows specific
 // conio.h for Windows getch();
-#include <windows.h>
 #include <conio.h>
 
 #define clearScreen "cls"

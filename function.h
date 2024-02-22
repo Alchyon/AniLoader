@@ -1,5 +1,6 @@
 #include "struct.h"
 
+int main();
 void starting();
 void optionMenu();
 
@@ -21,6 +22,3 @@ void downloadPrepare(animeEpisodeData *, downloadOption *, char *, char *);
 void createDirectory(downloadOption *, char *);
 char *getDirectEpisodeDownloadLink(char *, char *);
 void downloadFile(animeEpisodeData *, downloadOption *, char *, char *, int);
-
-// Aggiunta a CFU, funzione a parte per via della complessita' della stessa
-void addOnLoad(char *, char *, char *, char *, char *);

@@ -7,14 +7,6 @@ void changelog () {
 	printf("#                     "ANSI_COLOR_YELLOW" Changelog "ANSI_COLOR_RESET"                      #\n");
 	printf("########################################################\n");
 	printf("#                                                      #\n");
-	printf("#"ANSI_COLOR_CYAN" 1.5 "ANSI_COLOR_RESET"                                                 #\n");
-	printf("# - Risolti vari problemi di memory leak che           #\n");
-	printf("#   creavano errori durante il download, quali         #\n");
-	printf("#   percorsi non trovati o errori di sintassi          #\n");
-	printf("# - Risolto un problema per il quale gli anime con     #\n");
-	printf("#   un numero maggiore di 500 episodi causavano un     #\n");
-	printf("#   crash del programma                                #\n");
-	printf("#                                                      #\n");
 	printf("#"ANSI_COLOR_CYAN" 1.6 "ANSI_COLOR_RESET"                                                 #\n");
 	printf("# - Implementata una funzionalita' che permette di     #\n");
 	printf("#   aggiungere anime ai preferiti, in modo che questi  #\n");
@@ -42,6 +34,11 @@ void changelog () {
 	printf("# - Ottimizzato l'uso della memoria in modo che sia    #\n");
 	printf("#   il meno esoso possibile.                           #\n");
 	printf("# - Migliorie minori al codice sorgente.               #\n");
+	printf("#                                                      #\n");
+	printf("#"ANSI_COLOR_CYAN" 1.7.2 "ANSI_COLOR_RESET"                                               #\n");
+	printf("# - Fixato un valore di return di una funzione.        #\n");
+	printf("# - Fixato un input che richiedeva un INVIO di troppo. #\n");
+	printf("# - Aggiornato il README.                              #\n");
 	printf("#                                                      #\n");
 	printf("########################################################\n");
 }
