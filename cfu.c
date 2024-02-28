@@ -1,8 +1,6 @@
 // This file will be used only for CFU (Check for Updates) codes.
 // Il will keep everything inside for dividing the main code from the "DLC".
 
-// NOTA: NESSUNA funzione che chiamo deve in nessun modo o caso richiamare il main()!
-
 #include "libraries.h"
 #include "function.h"
 #include "utilities.h"
@@ -27,8 +25,8 @@ void addOnLoad (char *name, char *pageDirectLink, char *ext, char *downloadDirec
 
 	// Step 2:
 	//	- Controllare se l'anime e' gia' presente nei preferiti
-	// Per fare questo, si usa un formato standard di nomi, ovvero nomeAnime.cfu, questo file verra' letto e, se il controllo da esito positivo, verra' chiesto se
-	// eliminarlo, sovrascriverlo o riavviare il programma.
+	// Per fare questo, si usa un formato standard di nomi, ovvero nomeAnime.cfu, questo file verra' letto e, se il controllo da esito positivo, verra'
+	// notificato all'utente. L'eliminazione puo' avvenire solo dal menu' principale.
 	char *fileName = (char *) calloc(strlen(appdataFolder) + strlen(name) + 50, sizeof(char));
 	if (fileName == NULL) {
 		perror("calloc");
@@ -88,6 +86,7 @@ void CheckForUpdatesRoutine () {
 	//  5:	update .cfu file
 	const char *appdata = getenv("APPDATA");
 
+	// #1 & #2
 	int summaryLine = 0;
 	char **summaryData = getLibrary(&summaryLine);
 
@@ -136,10 +135,14 @@ void CheckForUpdatesRoutine () {
 			// Skippo questo anime e passo a quello dopo
 			continue;
 
-		// Controllo episodi usciti
+		// Controllo episodi usciti, printf() solo a scopo grafico
 		int nEpi = atoi(fileAnimeData[3]);
-		if (nEpi >= lastData->numberOfEpisode)
+		if (nEpi >= lastData->numberOfEpisode) {
+			printf("Nessun nuovo episodio per: %s\n", summaryData[i]);
 			continue;
+		}
+		else
+			printf("\n");
 
 		// Creazione struct dati per downloadFile()
 		downloadOption *dwlOpt = (downloadOption *) malloc(sizeof(downloadOption));
@@ -211,7 +214,9 @@ void CheckForUpdatesRoutine () {
 		strcpy(copy, fileAnimeData[2]);
 
 		// #4: struct pronta, chiamata a funzione e terminazione del codice
+		// 	   il printf() serve solo a migliorare l'output grafico
 		downloadPrepare(lastData, dwlOpt, copy, summaryData[i]);
+		printf("\n");
 
 		// #5: Aggiornamento del file .cfu
 		// Per comodita', delete into recreate
@@ -248,11 +253,12 @@ char **getLibrary (int *liner) {
 	char **summaryData = createMatrixByEscapeCharacter(extractInMemoryFromFile(summaryFile, false), "\n", &summaryLine);
 	*liner = summaryLine;
 
-	// Elimino .cfu dalla fine
+	// Elimino .cfu dalla fine di ogni file
 	for (; summaryLine != 0; summaryData[--summaryLine][strlen(summaryData[summaryLine]) - 4] = '\0');
 //	for (int i = 0; i < summaryLine; i++)
 //		summaryData[i][strlen(summaryData[i]) - 4] = '\0';
 	
+	free(summaryFile);
 	return summaryData;
 }
 
@@ -306,7 +312,7 @@ int delLibrary () {
 
 	// Informazioni su chi eliminare
 	int toDel = 0;
-	while (true) {	
+	while (true) {
 		do {
 			system(clearScreen);
 			lib = printLibrary(&line);
@@ -351,6 +357,9 @@ int delLibrary () {
 		}
 
 		free(lib);
+		free(summaryFile);
 		free(delFile);
 	}
+
+	return 0;
 }

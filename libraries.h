@@ -4,7 +4,6 @@
 #include <stdbool.h>
 #include <ctype.h>
 #include <unistd.h>
-#include <time.h>
 
 // Windows specific
 // conio.h for Windows getch();

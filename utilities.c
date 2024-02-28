@@ -40,6 +40,11 @@ void changelog () {
 	printf("# - Fixato un input che richiedeva un INVIO di troppo. #\n");
 	printf("# - Aggiornato il README.                              #\n");
 	printf("#                                                      #\n");
+	printf("#"ANSI_COLOR_CYAN" 1.7.3 "ANSI_COLOR_RESET"                                               #\n");
+	printf("# - Migliorati i messaggi di output forniti durante    #\n");
+	printf("#   l'aggiornamento dei nuovi episodi usciti.          #\n");
+	printf("# - Codice sorgente rilasciato su GitHub               #\n");
+	printf("#                                                      #\n");
 	printf("########################################################\n");
 }
 
@@ -90,7 +95,7 @@ char *extractInMemoryFromFile (char *searchFilePath, bool del) {
 	// Apertura file
 	FILE *search = fopen(searchFilePath, "r");
 	if (search == NULL) {
-		perror("malloc");
+		perror("fopen");
 		_exit(-2);
 	}
 
