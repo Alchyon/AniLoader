@@ -7,6 +7,10 @@ typedef struct {
 typedef struct {
 	char **animeEpisodeExtension;
 	int numberOfEpisode;
+
+	// Questo valore serve ESCLUSIVAMENTE per evitare di rileggere le righe
+	// passate, serve SOLO per la funzione getAnimeStatus(...);
+	int rLine;
 } animeEpisodeData;
 
 typedef struct {

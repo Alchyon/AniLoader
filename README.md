@@ -14,6 +14,8 @@ This program use curl and web-scraping technique to gather the links.
 - make
 - .\AniLoader.exe
 
+Compiler used: MinGW gcc 9.2.0
+
 ## Usage:
 Just follow what the program tells you to do.
 Texts are in italian only, english texts will be added in the future, maybe.

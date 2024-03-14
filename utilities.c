@@ -1,7 +1,7 @@
 #include "libraries.h"
 #include "utilities.h"
 
-// Other normal function
+// Other normal functions
 void changelog () {
 	printf("########################################################\n");
 	printf("#                     "ANSI_COLOR_YELLOW" Changelog "ANSI_COLOR_RESET"                      #\n");
@@ -44,6 +44,12 @@ void changelog () {
 	printf("# - Migliorati i messaggi di output forniti durante    #\n");
 	printf("#   l'aggiornamento dei nuovi episodi usciti.          #\n");
 	printf("# - Codice sorgente rilasciato su GitHub               #\n");
+	printf("#                                                      #\n");
+	printf("#"ANSI_COLOR_CYAN" 1.7.4 "ANSI_COLOR_RESET"                                               #\n");
+	printf("# - Aggiunte informazioni sugli anime come episodi     #\n");
+	printf("#   disponibili, episodi totali della stagione         #\n");
+	printf("#   selezionata, stato e data di uscita. Verranno      #\n");
+	printf("#   tutti mostrati prima della fase di download.       #\n");
 	printf("#                                                      #\n");
 	printf("########################################################\n");
 }

@@ -15,9 +15,13 @@ char *downloadRedirectPage(animeSearchData *, int);
 char *getPageLink(char *);
 char *downloadCorrectPage(char *);
 animeEpisodeData *getEpisodeExtension(char **, int);
-downloadOption *downloadMenu(char *, int);
+
+// Funzione usata per ottenere informazioni sullo stato dell'anime:
+// episodi previsti, stato
+char **getAnimeStatus(char**, int, int);
 
 // Funzioni per il download
+downloadOption *downloadMenu(char *, int, char **);
 void downloadPrepare(animeEpisodeData *, downloadOption *, char *, char *);
 void createDirectory(downloadOption *, char *);
 char *getDirectEpisodeDownloadLink(char *, char *);
