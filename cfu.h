@@ -5,6 +5,7 @@ void addOnLoad(char *, char *, char *, char *, char *);
 void CheckForUpdatesRoutine();
 
 // Altre funzioni che hanno, in qualche modo, un collegamento con CFU/preferiti
-char **getLibrary(int *);
-char **printLibrary(int *);
-int delLibrary();
+library *getLibrary();
+void printLibrary();
+int libraryOption();
+void delLibrary(library *, int);

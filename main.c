@@ -59,7 +59,7 @@ int main () {
 		main();
 	}
 
-	// Estraggp i nomi degli anime dall'HTML
+	// Estraggo i nomi degli anime dall'HTML
 	animeSearchData *baseData = extractAnimeName(searchDataResult, line, divFound);
 	free(searchDataResult);
 
@@ -141,6 +141,7 @@ int main () {
 	free(pageDirectLink);
 	free(baseData);
 	free(lastData);
+	free(animeStatus);
 	free(settings);
 
 	return 0;

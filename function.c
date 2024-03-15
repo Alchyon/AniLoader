@@ -14,7 +14,7 @@ void starting () {
 	printf("########################################################\n");
 	printf("#                                                      #\n");
 	printf("#                      " ANSI_COLOR_GREEN "Ani-Loader" ANSI_COLOR_RESET "                      #\n");
-	printf("#                       v. 1.7.4                       #\n");
+	printf("#                       v. 1.7.5                       #\n");
 	printf("#                                                      #\n");
 	printf("#            </>     - " ANSI_COLOR_GREEN "By Alchyon" ANSI_COLOR_RESET " -     </>            #\n");
 	printf("#     " ANSI_COLOR_CYAN "GitHub" ANSI_COLOR_RESET ": " ANSI_COLOR_CYAN "https://github.com/Alchyon/AniLoader" ANSI_COLOR_RESET "     #\n");
@@ -48,7 +48,7 @@ void optionMenu () {
 		case '1':	changelog();
 					break;
 		
-		case '2':	delLibrary();
+		case '2':	libraryOption();
 					break;
 		
 		case '3':	printf(ANSI_COLOR_YELLOW "Controllo aggiornamenti in corso...\n" ANSI_COLOR_RESET);
@@ -542,12 +542,11 @@ char **getAnimeStatus(char **pageDataResult, int line, int startingPoint) {
 	}
 
 	// Inizializzazione, 0 significa errore o dati incompleti
-	// data[0] -> numero di episodi previsti, "0" significa che l'anime non e' ancora stato rilasciato
+	// data[0] -> numero di episodi previsti, "-1" significa che l'anime non e' ancora stato rilasciato o non si hanno informazioni a riguardo
 	// data[1] -> stato dell'anime, "In corso", "Completato", "Non rilasciato", "Droppato" ... "0" (sconosciuto), il caso "Non rilasciato" non dovrebbe mai avvenire
 	// data[2] -> data di uscita in parole
-	data[0][0] = '0';
-	data[1][0] = '0';
-	data[2][0] = '0';
+	data[0][0] = '-';	data[0][1] = '1';	data[0][2] = '\0';
+	data[2][0] = '0';	data[2][1] = '\0';
 
 	// Inizio calcoli su ogni riga del file
 	// Skippo le prime "startingPoint" dato che sono gia' state lette, computazione in meno da fare
@@ -573,6 +572,7 @@ char **getAnimeStatus(char **pageDataResult, int line, int startingPoint) {
 				}
 
 			// Se sono qui, +4 e si estrae lo stato
+			// Se non corrisponde, probabilmente esiste uno stato nuovo oppure c'e' stato un errore
 			if (strstr(pageDataResult[i + 4], "In corso"))
 				strcpy(data[1], "in corso");
 			else if (strstr(pageDataResult[i + 4], "Finito"))
@@ -581,9 +581,9 @@ char **getAnimeStatus(char **pageDataResult, int line, int startingPoint) {
 				strcpy(data[1], "non rilasciato");
 			else if (strstr(pageDataResult[i + 4], "Droppato"))
 				strcpy(data[1], "droppato");
-
-			// Il caso in cui non sia nessuno di questi e' gia' stato considerato nell'inizializzazione della variabile
-			// Interrompo il ciclo e restituisco i valori ottenuti
+			else
+				strcpy(data[1], "sconosciuto");
+			
 			break;
 		}
 	}

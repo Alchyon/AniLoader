@@ -26,3 +26,13 @@ typedef struct {
 
 	char *downloadDirectory;
 } downloadOption;
+
+typedef struct {
+	// Percorso del file contenente l'elenco dei preferiti
+	char *summaryPath;
+
+	// Elenco dei dati del file localizzato in summaryPath
+	// e relativa dimensione
+	char **libData;
+	int libLine;
+} library;

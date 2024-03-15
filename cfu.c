@@ -13,15 +13,14 @@ void addOnLoad (char *name, char *pageDirectLink, char *ext, char *downloadDirec
 	
 	// Step 1:
 	// 	- Creazione della cartella "AniLoader" in "... AppData/Roaming"
-	char *appdataFolder = (char *) calloc(200, sizeof(char));
+	char *appdataFolder = (char *) calloc(250, sizeof(char));
 	if (appdataFolder == NULL) {
 		perror("calloc");
 		_exit(-2);
 	}
 	
-	sprintf(appdataFolder, "mkdir \"%s/AniLoader\"", getenv("APPDATA"));
+	sprintf(appdataFolder, "mkdir \"%s/AniLoader\" > nul 2> nul", getenv("APPDATA"));
 	system(appdataFolder);
-	system(clearScreen);
 
 	// Step 2:
 	//	- Controllare se l'anime e' gia' presente nei preferiti
@@ -87,20 +86,19 @@ void CheckForUpdatesRoutine () {
 	const char *appdata = getenv("APPDATA");
 
 	// #1 & #2
-	int summaryLine = 0;
-	char **summaryData = getLibrary(&summaryLine);
+	library *lib = getLibrary();
 
 	// #3
-	for (int i = 0; i < summaryLine; i++) {
+	for (int i = 0; i < lib->libLine; i++) {
 		// Read from file, no reason to allocate, elaborated one by one.
-		char *filePath = (char *) calloc(strlen(summaryData[i]) + strlen(appdata) + 50, sizeof(char));
+		char *filePath = (char *) calloc(strlen(lib->libData[i]) + strlen(appdata) + 50, sizeof(char));
 		if (filePath == NULL) {
 			perror("calloc");
 			_exit(2);
 		}
 
 		// Path del singolo file, verra' resettato ad ogni iterazione, .cfu aggiunto hardcoded
-		sprintf(filePath, "%s\\AniLoader\\%s.cfu", appdata, summaryData[i]);
+		sprintf(filePath, "%s\\AniLoader\\%s.cfu", appdata, lib->libData[i]);
 
 		// Considerato che extractInMemoryFromFile() ha una _exit() in caso di file non esistente, verifico adesso che
 		// esista e chiamo un break in caso negativo
@@ -109,6 +107,7 @@ void CheckForUpdatesRoutine () {
 			continue;
 
 		// Lettura dati dal file, metodo senza struct
+		fclose(f);
 		int dataLine = 0;
 		char **fileAnimeData = createMatrixByEscapeCharacter(extractInMemoryFromFile(filePath, false), "\n", &dataLine);
 
@@ -128,6 +127,9 @@ void CheckForUpdatesRoutine () {
 
 		// Ottengo una struttura contenente le estensioni dei singoli episodi e il numero delle stesse
 		animeEpisodeData *lastData = getEpisodeExtension(pageDataResult, line);
+
+		// Ottengo lo stato, verra' utilizzato per decidere se l'anime e' da ritenersi completato o meno
+		char **animeStatus = getAnimeStatus(pageDataResult, line, lastData->rLine);
 		free(pageDataResult);
 
 		if (lastData->numberOfEpisode == -1)
@@ -137,8 +139,18 @@ void CheckForUpdatesRoutine () {
 
 		// Controllo episodi usciti, printf() solo a scopo grafico
 		int nEpi = atoi(fileAnimeData[3]);
-		if (nEpi >= lastData->numberOfEpisode) {
-			printf("Nessun nuovo episodio per: %s\n", summaryData[i]);
+		
+		// Effettuo un doppio controllo, episodi interamente scaricati e anime terminato.
+		// Elimino l'anime dai preferiti e lo segnalo all'utente 
+		if (nEpi == atoi(animeStatus[0]) && strcmp(animeStatus[1], "finito") == 0) {
+			delLibrary(lib, i);
+			printf(ANSI_COLOR_RED "%s e' stato rimosso dai preferiti in quanto terminato\n" ANSI_COLOR_RESET, lib->libData[i]);
+			continue;
+		}
+		
+		// Anime non terminato ma nessun episodio nuovo uscito
+		if (nEpi == lastData->numberOfEpisode) {
+			printf("Nessun nuovo episodio per: %s\n", lib->libData[i]);
 			continue;
 		}
 		else
@@ -215,7 +227,7 @@ void CheckForUpdatesRoutine () {
 
 		// #4: struct pronta, chiamata a funzione e terminazione del codice
 		// 	   il printf() serve solo a migliorare l'output grafico
-		downloadPrepare(lastData, dwlOpt, copy, summaryData[i]);
+		downloadPrepare(lastData, dwlOpt, copy, lib->libData[i]);
 		printf("\n");
 
 		// #5: Aggiornamento del file .cfu
@@ -232,59 +244,60 @@ void CheckForUpdatesRoutine () {
 		free(copy);
 	}
 
-	for (; summaryLine != 0; free(summaryData[summaryLine--]));
-	free(summaryData);
+	free(lib);
 }
 
-char **getLibrary (int *liner) {
+library *getLibrary () {
 	// "liner" verra' sovrascritto con il numero esatto di righe, che corrisponde
 	// al numero di file presenti, ovvero al numero di preferiti esistenti
 	const char *appdata = getenv("APPDATA");
 
-	char *summaryFile = (char *) calloc(strlen(appdata) + 50, sizeof(char));
-	if (summaryFile == NULL) {
+	library *lib = (library*) calloc(1, sizeof(library));
+	if (lib == NULL) {
+		perror("calloc");
+		_exit(2);
+	}
+
+	lib->summaryPath = (char *) calloc(strlen(appdata) + 50, sizeof(char));
+	if (lib->summaryPath == NULL) {
 		perror("calloc");
 		_exit(-2);
 	}
 
-	sprintf(summaryFile, "%s\\AniLoader\\_data.summary", appdata);
+	sprintf(lib->summaryPath, "%s\\AniLoader\\_data.summary", appdata);
 
-	int summaryLine = 0;
-	char **summaryData = createMatrixByEscapeCharacter(extractInMemoryFromFile(summaryFile, false), "\n", &summaryLine);
-	*liner = summaryLine;
+	lib->libLine = 0;
+	lib->libData = createMatrixByEscapeCharacter(extractInMemoryFromFile(lib->summaryPath, false), "\n", &lib->libLine);
 
 	// Elimino .cfu dalla fine di ogni file
-	for (; summaryLine != 0; summaryData[--summaryLine][strlen(summaryData[summaryLine]) - 4] = '\0');
-//	for (int i = 0; i < summaryLine; i++)
-//		summaryData[i][strlen(summaryData[i]) - 4] = '\0';
+	for (int i = lib->libLine; i != 0; lib->libData[--i][strlen(lib->libData[i]) - 4] = '\0');
+//	for (int i = 0; i < lib->libLine; i++)
+//		lib->libData[i][strlen(lib->libData[i]) - 4] = '\0';
 	
-	free(summaryFile);
-	return summaryData;
-}
-
-char **printLibrary (int *liner) {
-	int line = 0;
-	char **lib = getLibrary(&line);
-
-	if (line == 0) {
-		printf("Attualmente non ci sono preferiti salvati!");
-		return NULL;
-	}
-	
-	printf(ANSI_COLOR_GREEN "Elenco anime preferiti:\n\n" ANSI_COLOR_RESET);
-	for (int i = 0; i < line; i++)
-		printf(ANSI_COLOR_YELLOW "%d" ANSI_COLOR_RESET "] %s\n", i, lib[i]);
-
-	*liner = line;
 	return lib;
 }
 
-int delLibrary () {
-	int line = 0;
-	char **lib = printLibrary(&line);
+void printLibrary () {
+	library *lib = getLibrary();
+
+	if (lib->libLine == 0)
+		printf("Attualmente non ci sono preferiti salvati!\n");
+	else {
+		printf(ANSI_COLOR_GREEN "Elenco anime preferiti:\n\n" ANSI_COLOR_RESET);
+		for (int i = 0; i < lib->libLine; i++)
+			printf(ANSI_COLOR_YELLOW "%d" ANSI_COLOR_RESET "] %s\n", i, lib->libData[i]);
+	}
+}
+
+int libraryOption () {
+	// Mi istanzio una libreria
+	library *lib = getLibrary();
+
+	// Stampo la libreria
+	printLibrary();
 	
 	// Nessun anime tra i preferiti
-	if (lib == NULL)
+	if (lib->libLine == 0)
 		return 0;
 
 	char choice;
@@ -300,26 +313,18 @@ int delLibrary () {
 		return 0;
 	}
 
-	// Aggiornamento del file
-	const char *appdata = getenv("APPDATA");
-	char *summaryFile = (char *) calloc(strlen(appdata) + 50, sizeof(char));
-	if (summaryFile == NULL) {
-		perror("calloc");
-		_exit(-2);
-	}
-
-	sprintf(summaryFile, "%s\\AniLoader\\_data.summary", appdata);
-
-	// Informazioni su chi eliminare
+	// Quando so chi eliminare, chiamo la funzione che mi elimina quell'elemento
+	// e lo rendo void cosi' da poterlo utilizzare anche in CFU e in future applicazioni
 	int toDel = 0;
 	while (true) {
 		do {
 			system(clearScreen);
-			lib = printLibrary(&line);
+			lib = getLibrary();
+			printLibrary();
 
 			printf("\nDigita il numero a lato dell'anime da eliminare o -1 per uscire: ");
 			scanf("%d", &toDel);
-		} while (toDel < -1 || toDel > line);
+		} while (toDel < -1 || toDel > lib->libLine - 1);
 
 		// Dopo lo scanf(), intercetto il '\n' che rimane in memoria per prevenire errori nella ricerca
 		getchar();
@@ -330,36 +335,42 @@ int delLibrary () {
 
 		// Aggiornamento del file .cfu
 		// Per comodita', delete into recreate
-		remove(summaryFile);
-		FILE *f = fopen(summaryFile, "w");
-
-		for (int i = 0; i < line; i++) {
-			if (i != toDel)
-				fprintf(f, "%s.cfu\n", lib[i]);
-		}
-		
-		fclose(f);
-		
-		char *delFile = (char *) calloc(strlen(appdata) + 50, sizeof(char));
-		if (delFile == NULL) {
-			perror("calloc");
-			_exit(-2);
-		}
-
-		sprintf(delFile, "%s\\AniLoader\\%s.cfu", appdata, lib[toDel]);
-		remove(delFile);
+		delLibrary(lib, toDel);
 		
 		// Se line = 1 e sono qui, significa che ora il file e' vuoto, esco per evitare crash
-		if (line == 1) {
+		if (lib->libLine == 1) {
 			system(clearScreen);
-			printf(ANSI_COLOR_GREEN "Tutti i preferiti sono stati cancellati." ANSI_COLOR_RESET);
+			printf(ANSI_COLOR_GREEN "Tutti i preferiti sono stati cancellati.\n" ANSI_COLOR_RESET);
 			return 0;
 		}
 
 		free(lib);
-		free(summaryFile);
-		free(delFile);
 	}
 
 	return 0;
+}
+
+void delLibrary(library *lib, int toDel) {
+	const char *appdata = getenv("APPDATA");
+
+	remove(lib->summaryPath);
+	FILE *f = fopen(lib->summaryPath, "w");
+
+	for (int i = 0; i < lib->libLine; i++) {
+		if (i != toDel)
+			fprintf(f, "%s.cfu\n", lib->libData[i]);
+	}
+		
+	fclose(f);
+		
+	char *delFile = (char *) calloc(strlen(appdata) + 50, sizeof(char));
+	if (delFile == NULL) {
+		perror("calloc");
+		_exit(-2);
+	}
+
+	sprintf(delFile, "%s\\AniLoader\\%s.cfu", appdata, lib->libData[toDel]);
+	remove(delFile);
+
+	free(delFile);
 }

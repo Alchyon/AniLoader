@@ -9,6 +9,9 @@
 // conio.h for Windows getch();
 #include <conio.h>
 
+// struct(s)
+#include "struct.h"
+
 #define clearScreen "cls"
 #define BPATH "C:/Users/"
 #define URL "https://www.animeworld.so"

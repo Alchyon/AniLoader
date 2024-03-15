@@ -7,15 +7,6 @@ void changelog () {
 	printf("#                     "ANSI_COLOR_YELLOW" Changelog "ANSI_COLOR_RESET"                      #\n");
 	printf("########################################################\n");
 	printf("#                                                      #\n");
-	printf("#"ANSI_COLOR_CYAN" 1.6 "ANSI_COLOR_RESET"                                                 #\n");
-	printf("# - Implementata una funzionalita' che permette di     #\n");
-	printf("#   aggiungere anime ai preferiti, in modo che questi  #\n");
-	printf("#   siano controllati all'avvio del programma, per     #\n");
-	printf("#   verificare la presenza di nuovi episodi che        #\n");
-	printf("#   verranno scaricati in automatico nella cartella    #\n");
-	printf("#   prestabilita.                                      #\n");
-	printf("#   Utile per chi guarda gli anime in simulcast.       #\n");
-	printf("#                                                      #\n");
 	printf("#"ANSI_COLOR_CYAN" 1.7 "ANSI_COLOR_RESET"                                                 #\n");
 	printf("# - Rimosso il sistema di cookie in quanto troppo      #\n");
 	printf("#   hardcoded e, di conseguenza, poco efficace.        #\n");
@@ -50,6 +41,12 @@ void changelog () {
 	printf("#   disponibili, episodi totali della stagione         #\n");
 	printf("#   selezionata, stato e data di uscita. Verranno      #\n");
 	printf("#   tutti mostrati prima della fase di download.       #\n");
+	printf("#                                                      #\n");
+	printf("#"ANSI_COLOR_CYAN" 1.7.5 "ANSI_COLOR_RESET"                                               #\n");
+	printf("# - Aggiunta una funzionalita' che elimina in          #\n");
+	printf("#   automatico gli anime tra i preferiti che sono      #\n");
+	printf("#   terminati e di cui sono stati scaricati tutti gli  #\n");
+	printf("#   episodi disponibili.                               #\n");
 	printf("#                                                      #\n");
 	printf("########################################################\n");
 }

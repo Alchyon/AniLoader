@@ -1,5 +1,3 @@
-#include "struct.h"
-
 int main();
 void starting();
 void optionMenu();
