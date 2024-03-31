@@ -48,6 +48,13 @@ void changelog () {
 	printf("#   terminati e di cui sono stati scaricati tutti gli  #\n");
 	printf("#   episodi disponibili.                               #\n");
 	printf("#                                                      #\n");
+	printf("#"ANSI_COLOR_CYAN" 1.7.6 "ANSI_COLOR_RESET"                                               #\n");
+	printf("# - Risolto un problema che eliminava gli anime dai    #\n");
+	printf("#   dai preferiti nel caso in cui contenessero degli   #\n");
+	printf("#   intermezzi o riassunti, i cosiddetti recap (.5).   #\n");
+	printf("# - Riaggiunto il supporto ai cookie, attualmente in   #\n");
+	printf("#   fase di testing.                                   #\n");
+	printf("#                                                      #\n");
 	printf("########################################################\n");
 }
 

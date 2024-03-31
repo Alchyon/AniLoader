@@ -87,6 +87,8 @@ void CheckForUpdatesRoutine () {
 
 	// #1 & #2
 	library *lib = getLibrary();
+	cookie *cookie = NULL;
+	char *pageContent;
 
 	// #3
 	for (int i = 0; i < lib->libLine; i++) {
@@ -113,13 +115,23 @@ void CheckForUpdatesRoutine () {
 
 		// Ora partono le chiamate al main code per riutilizzare le funzioni, alcune strutture verranno ricreate in maniera
 		// automatica in quanto i parametri sono gia' presenti nel file di salvataggio (... .cfu)
-		
-		// Creo il comando per scaricare la pagina corretta e lo eseguo
-		char *path = createPath(downloadCorrectPage(fileAnimeData[2]));
+		// Il do/while serve a gestire la presenza, o meno, di cookie necessari per l'accesso al sito
+		do {
+			// Creo il comando per scaricare la pagina corretta e lo eseguo
+			downloadCorrectPage(cookie, fileAnimeData[2]);
+			char *path = createPath("page.txt");
 
-		// Ottengo il contenuto della pagina dal file ed elimino lo stesso
-		char *pageContent = extractInMemoryFromFile(path, true);
-		free(path);
+			// Ottengo il contenuto della pagina dal file ed elimino lo stesso
+			pageContent = extractInMemoryFromFile(path, true);
+			free(path);
+
+			// Controllo cookie, se sono attivi, si ripete
+			if (!strstr(pageContent, "document.cookie"))
+				break;
+			else
+				cookie = getCookie(pageContent);
+		}
+		while (true);
 
 		// Trasformo l'array in una matrice
 		int line = 0;
@@ -140,14 +152,16 @@ void CheckForUpdatesRoutine () {
 		// Controllo episodi usciti, printf() solo a scopo grafico
 		int nEpi = atoi(fileAnimeData[3]);
 		
-		// Effettuo un doppio controllo, episodi interamente scaricati e anime terminato.
-		// Elimino l'anime dai preferiti e lo segnalo all'utente 
-		if (nEpi == atoi(animeStatus[0]) && strcmp(animeStatus[1], "finito") == 0) {
+		// Elimino se, e solo se, sono rispettate le seguenti regole:
+		//	- lo stato dell'anime risulta "terminato"
+		//	- il numero di episodi scaricati corrisponde al numero di episodi stimati
+		//	- il numero di episodi scaricati corrisponde al numero di episodi attualmente disponibili
+		if (strcmp(animeStatus[1], "finito") == 0 && nEpi >= atoi(animeStatus[0]) && nEpi >= lastData->numberOfEpisode) {
 			delLibrary(lib, i);
-			printf(ANSI_COLOR_RED "%s e' stato rimosso dai preferiti in quanto terminato\n" ANSI_COLOR_RESET, lib->libData[i]);
+			printf(ANSI_COLOR_CYAN "%s" ANSI_COLOR_RED " e' stato rimosso dai preferiti in quanto terminato\n" ANSI_COLOR_RESET, lib->libData[i]);
 			continue;
 		}
-		
+
 		// Anime non terminato ma nessun episodio nuovo uscito
 		if (nEpi == lastData->numberOfEpisode) {
 			printf("Nessun nuovo episodio per: %s\n", lib->libData[i]);
@@ -227,7 +241,7 @@ void CheckForUpdatesRoutine () {
 
 		// #4: struct pronta, chiamata a funzione e terminazione del codice
 		// 	   il printf() serve solo a migliorare l'output grafico
-		downloadPrepare(lastData, dwlOpt, copy, lib->libData[i]);
+		downloadPrepare(lastData, dwlOpt, cookie, copy, lib->libData[i]);
 		printf("\n");
 
 		// #5: Aggiornamento del file .cfu

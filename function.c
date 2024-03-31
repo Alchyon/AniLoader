@@ -4,7 +4,7 @@
 #include "cfu.h"
 
 // _exit() values:
-//	0 -> terminato con successo, qualunque sia la causa
+//  0 -> terminato con successo, qualunque sia la causa
 // -1 -> errore apertura file
 // -2 -> errore allocazione memoria
 // -3 -> OS non supportato
@@ -14,7 +14,7 @@ void starting () {
 	printf("########################################################\n");
 	printf("#                                                      #\n");
 	printf("#                      " ANSI_COLOR_GREEN "Ani-Loader" ANSI_COLOR_RESET "                      #\n");
-	printf("#                       v. 1.7.5                       #\n");
+	printf("#                       v. 1.7.6                       #\n");
 	printf("#                                                      #\n");
 	printf("#            </>     - " ANSI_COLOR_GREEN "By Alchyon" ANSI_COLOR_RESET " -     </>            #\n");
 	printf("#     " ANSI_COLOR_CYAN "GitHub" ANSI_COLOR_RESET ": " ANSI_COLOR_CYAN "https://github.com/Alchyon/AniLoader" ANSI_COLOR_RESET "     #\n");
@@ -103,9 +103,9 @@ char *insertName () {
 	return name;
 }
 
-void searchAnimeByName (char* name) {
+void searchAnimeByName (cookie *biscuit, char* name) {
 	// Creazione comando
-	char *command = (char *) calloc(strlen(name) + 100, sizeof(char));
+	char *command = (char *) calloc(strlen(name) + 300, sizeof(char));
 	if (command == NULL) {
 		perror("calloc");
 		_exit(-2);
@@ -113,8 +113,47 @@ void searchAnimeByName (char* name) {
 
 	sprintf(command, "curl -s \"%s/search?keyword=%s\" > \"%s\"", URL, name, createPath("search.txt"));
 
+	// Aggiunta cookie al comando
+	if (biscuit != NULL)
+		sprintf(command + strlen(command), " --cookie \"%s=%s\"", biscuit->name, biscuit->token);
+
 	system(command);
 	free(command);
+}
+
+cookie *getCookie (char *data) {
+	cookie *biscuit = (cookie *) malloc(sizeof(cookie));
+	if (biscuit == NULL) {
+		perror("malloc");
+		_exit(2);
+	}
+	
+	char *token = strtok(data, "\"= ");
+	token = strtok(NULL, "\"= ");
+	token = strtok(NULL, "\"= ");
+	token = strtok(NULL, "\"= ");
+
+	// Nome del cookie
+	token = strtok(NULL, "\"= ");
+	biscuit->name = (char *) calloc(strlen(token) + 1, sizeof(char));
+	if (biscuit->name == NULL) {
+		perror("calloc");
+		_exit(-2);
+	}
+
+	strcpy(biscuit->name, token);
+
+	// Token (value)
+	token = strtok(NULL, "\"= ");
+	biscuit->token = (char *) calloc(strlen(token) + 1, sizeof(char));
+	if (biscuit->token == NULL) {
+		perror("calloc");
+		_exit(-2);
+	}
+
+	strcpy(biscuit->token, token);
+
+	return biscuit;
 }
 
 int searchAnimeDiv (char **searchDataResult, int line) {
@@ -380,7 +419,7 @@ int selectAnime (animeSearchData *baseData) {
 	return selected;
 }
 
-char *downloadRedirectPage (animeSearchData *baseData, int selected) {
+char *downloadRedirectPage (animeSearchData *baseData, cookie *biscuit, int selected) {
 	char *command = (char *) calloc(strlen(baseData->findAnimeLink[selected]) + 300, sizeof(char));
 	if (command == NULL) {
 		perror("calloc");
@@ -389,6 +428,10 @@ char *downloadRedirectPage (animeSearchData *baseData, int selected) {
 
 	// Concateno in una stringa il comando da eseguire
 	sprintf(command, "curl -s \"%s%s\" > \"%s\"", URL, baseData->findAnimeLink[selected], createPath("redirect.txt"));
+
+	// Aggiunta cookie al comando
+	if (biscuit != NULL)
+		sprintf(command + strlen(command), " --cookie \"%s=%s\"", biscuit->name, biscuit->token);
 
 	system(command);
 	free(command);
@@ -414,7 +457,7 @@ char *getPageLink (char *redirectContent) {
 	return momentCopy;
 }
 
-char *downloadCorrectPage (char *pageDirectLink) {
+char *downloadCorrectPage (cookie *biscuit, char *pageDirectLink) {
 	char *command = (char *) calloc(strlen(pageDirectLink) + 300, sizeof(char));
 	if (command == NULL) {
 		perror("calloc");
@@ -422,6 +465,10 @@ char *downloadCorrectPage (char *pageDirectLink) {
 	}
 
 	sprintf(command, "curl -s \"%s%s\" > \"%s\"", URL, pageDirectLink, createPath("page.txt"));
+
+	// Aggiunta cookie al comando
+	if (biscuit != NULL)
+		sprintf(command + strlen(command), " --cookie \"%s=%s\"", biscuit->name, biscuit->token);
 
 	system(command);
 	free(command);
@@ -542,10 +589,10 @@ char **getAnimeStatus(char **pageDataResult, int line, int startingPoint) {
 	}
 
 	// Inizializzazione, 0 significa errore o dati incompleti
-	// data[0] -> numero di episodi previsti, "-1" significa che l'anime non e' ancora stato rilasciato o non si hanno informazioni a riguardo
+	// data[0] -> numero di episodi previsti, il programma non stampa mai questo dato se non sono presenti episodi (caso "non rilasciato")
 	// data[1] -> stato dell'anime, "In corso", "Completato", "Non rilasciato", "Droppato" ... "0" (sconosciuto), il caso "Non rilasciato" non dovrebbe mai avvenire
 	// data[2] -> data di uscita in parole
-	data[0][0] = '-';	data[0][1] = '1';	data[0][2] = '\0';
+	data[0][0] = '\0';
 	data[2][0] = '0';	data[2][1] = '\0';
 
 	// Inizio calcoli su ogni riga del file
@@ -800,7 +847,7 @@ downloadOption *downloadMenu (char *name, int numberOfEpisode, char **animeStatu
 }
 
 // Funzioni che servono a ottenere informazioni e dati necessari al solo download
-void downloadPrepare (animeEpisodeData *lastData, downloadOption *settings, char *pageDirectLink, char *name) {
+void downloadPrepare (animeEpisodeData *lastData, downloadOption *settings, cookie *biscuit, char *pageDirectLink, char *name) {
 	// Correggo il directLink eliminando l'estensione
 	int i;
 	for (i = strlen(pageDirectLink); pageDirectLink[i] != '/'; i--);
@@ -844,11 +891,11 @@ void downloadPrepare (animeEpisodeData *lastData, downloadOption *settings, char
 		printf("Download episodio %d\n", i + 1);
 
 		// Mi faccio ritornare il link al download diretto
-		directDownloadLink = getDirectEpisodeDownloadLink(pageDirectLink, lastData->animeEpisodeExtension[i]);
+		directDownloadLink = getDirectEpisodeDownloadLink(biscuit, pageDirectLink, lastData->animeEpisodeExtension[i]);
 
 		// Chiamo la funzione che gestisce la creazione del comando finale da eseguire
 		if (strcmp(directDownloadLink, "ERROR") != 0)
-			downloadFile(lastData, settings, directDownloadLink, name, i);
+			downloadFile(lastData, settings, biscuit, directDownloadLink, name, i);
 		else
 			printf(ANSI_COLOR_RED "Si e' verificato un errore per l'episodio %d" ANSI_COLOR_RESET "\n", i + 1);
 
@@ -877,15 +924,19 @@ void createDirectory (downloadOption *settings, char *name) {
 	free(mkdir);
 }
 
-char *getDirectEpisodeDownloadLink (char *pageDirectLink, char *extension) {
+char *getDirectEpisodeDownloadLink (cookie *biscuit, char *pageDirectLink, char *extension) {
 	// Creazione comando di download
-	char *downloadCommand = (char *) calloc(strlen(extension) + strlen(pageDirectLink) + 200, sizeof(char));
+	char *downloadCommand = (char *) calloc(strlen(extension) + strlen(pageDirectLink) + 300, sizeof(char));
 	if (downloadCommand == NULL) {
 		perror("calloc");
 		_exit(-2);
 	}
 
-	sprintf(downloadCommand, "curl -s \"%s%s%s\" > \"%s\"", URL, pageDirectLink, extension, createPath("ep.txt"));
+	sprintf(downloadCommand, "curl -s \"%s%s%s\" -o \"%s\"", URL, pageDirectLink, extension, createPath("ep.txt"));
+
+	// Aggiunta cookie al comando, se necessario
+	if (biscuit != NULL)
+		sprintf(downloadCommand + strlen(downloadCommand), " --cookie \"%s=%s\"", biscuit->name, biscuit->token);
 
 	// Scarico il file
 	system(downloadCommand);
@@ -941,7 +992,7 @@ char *getDirectEpisodeDownloadLink (char *pageDirectLink, char *extension) {
 	return "ERROR";
 }
 
-void downloadFile (animeEpisodeData *lastData, downloadOption *settings, char *directDownloadLink, char *name, int i) {
+void downloadFile (animeEpisodeData *lastData, downloadOption *settings, cookie *biscuit, char *directDownloadLink, char *name, int i) {
 	// Creo un comando curl che scarica l'episodio dal link ottenuto prima in caso il valore di return sia diverso da "ERROR"
 	char *downloadCommandLink = (char *) calloc(strlen(directDownloadLink) + strlen(name) + 500, sizeof(char));
 	if (downloadCommandLink == NULL) {
@@ -951,9 +1002,9 @@ void downloadFile (animeEpisodeData *lastData, downloadOption *settings, char *d
 
 	// Controllo se la directory e' stata modificata
 	if (strlen(settings->downloadDirectory) != 0)
-		sprintf(downloadCommandLink, "curl -L -# \"%s\" > \"%s\0", directDownloadLink, settings->downloadDirectory);
+		sprintf(downloadCommandLink, "curl -L -# \"%s\" -o \"%s\0", directDownloadLink, settings->downloadDirectory);
 	else
-		sprintf(downloadCommandLink, "curl -L -# \"%s\" > \"%s%s/\0", directDownloadLink, createPath(""), fixDirectoryName(name));
+		sprintf(downloadCommandLink, "curl -L -# \"%s\" -o \"%s%s/\0", directDownloadLink, createPath(""), fixDirectoryName(name));
 
 	// Controllo se il nome e' stato modificato
 	if (settings->nameEpisodeChange)
@@ -972,8 +1023,11 @@ void downloadFile (animeEpisodeData *lastData, downloadOption *settings, char *d
 	else if (i < 9)
 		strcat(downloadCommandLink, "0");
 
-	// Inserimento numero dell'episodio ed estensione del file
-	sprintf(downloadCommandLink + strlen(downloadCommandLink), "%d.mp4\0", i + 1);
+	// Inserimento numero dell'episodio ed estensione del file, effettuo qui il controllo per i cookie
+	if (biscuit != NULL)
+		sprintf(downloadCommandLink + strlen(downloadCommandLink), "%d.mp4 --cookie \"%s=%s\"\0", i + 1, biscuit->name, biscuit->token);
+	else
+		sprintf(downloadCommandLink + strlen(downloadCommandLink), "%d.mp4\0", i + 1);
 
 	// Comando di download
 	system(downloadCommandLink);

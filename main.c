@@ -26,20 +26,30 @@ int main () {
 
 	// Variabili usate nella parte sottostante per il funzionamento base del programma, dichiarate qui per questioni di scope
 	char *path;
+	cookie *cookie = NULL;
 	char *searchData;
 	int line = 0;
 	char **searchDataResult;
 	int divFound = 0;
 
-	// Creazione ed esecuzione del comando per scaricare la pagina di ricerca
-	// URL ... /search?keyword= ...
-	searchAnimeByName(name);
+	do {
+		// Creazione ed esecuzione del comando per scaricare la pagina di ricerca
+		// URL ... /search?keyword= ...
+		searchAnimeByName(cookie, name);
 
-	// Inserisco in una stringa il path assoluto del file scaricato poi...
-	// Leggo tutto il file e lo inserisco in un array
-	path = createPath("search.txt");
-	searchData = extractInMemoryFromFile(path, true);
-	free(path);
+		// Inserisco in una stringa il path assoluto del file scaricato poi...
+		// Leggo tutto il file e lo inserisco in un array
+		path = createPath("search.txt");
+		searchData = extractInMemoryFromFile(path, true);
+		free(path);
+
+		// Controllo cookie, se sono attivi, si ripete
+		if (!strstr(searchData, "document.cookie"))
+			break;
+		else
+			cookie = getCookie(searchData);
+	}
+	while (true);
 
 	// Creo una matrice contenente tutte le righe del file splittando i '\n' dal file
 	line = 0;
@@ -86,8 +96,7 @@ int main () {
 	
 	// Scarico la pagina di redirect dell'anime selezionato, e' un path che identifica l'anime ma non gli episodi di esso
 	// URL ... /search?keyword?= ... / nome_Anime /
-	// Il return e' il nome del file creato che viene usato per creare il path del file da leggere
-	path = createPath(downloadRedirectPage(baseData, selected));
+	path = createPath(downloadRedirectPage(baseData, cookie, selected));
 
 	// Leggo tutto il file e lo inserisco in un array
 	char *redirectContent = extractInMemoryFromFile(path, true);
@@ -99,7 +108,7 @@ int main () {
 	free(redirectContent);
 
 	// Creo il comando per scaricare la pagina corretta e lo eseguo
-	path = createPath(downloadCorrectPage(pageDirectLink));
+	path = createPath(downloadCorrectPage(cookie, pageDirectLink));
 
 	// Ottengo il contenuto della pagina dal file ed elimino il file residuo
 	char *pageContent = extractInMemoryFromFile(path, true);
@@ -131,11 +140,11 @@ int main () {
 	printf("Download in corso con le impostazioni fornite, questo processo potrebbe richiedere molto tempo.\n");
 	printf("Non chiudere il programma o il download verra' interrotto e sara' irrecuperabile.\n");
 	printf(ANSI_COLOR_GREEN "Avvio. . ." ANSI_COLOR_RESET "\n\n");
-	downloadPrepare(lastData, settings, pageDirectLink, baseData->correctAnimeName[selected]);
+	downloadPrepare(lastData, settings, cookie, pageDirectLink, baseData->correctAnimeName[selected]);
 	
 	printf(ANSI_COLOR_GREEN "\nDownload completato!\n" ANSI_COLOR_RESET);
-	printf("Grazie per aver usato AniLoader, premi un tasto per chiudere il programma...");
-	getch();
+	printf("Grazie per aver usato AniLoader, premi INVIO per chiudere il programma...");
+	while (divFound = getch() != 13 && divFound != EOF);
 
 	// Free finali 'incompleti' dato che segue la terminazione del codice
 	free(pageDirectLink);
