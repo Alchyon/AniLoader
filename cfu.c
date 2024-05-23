@@ -12,15 +12,15 @@ void addOnLoad (char *name, char *pageDirectLink, char *ext, char *downloadDirec
 	// manipolazione di stringhe su qualche info, che pero' non viene piu' riutilizzata al termine di questa funzione, in quanto void!
 	
 	// Step 1:
-	// 	- Creazione della cartella "AniLoader" in "... AppData/Roaming"
+	// 	- Creazione della cartella "AniLoader" in "... AppData/Roaming" se non pre-esistente.
 	char *appdataFolder = (char *) calloc(250, sizeof(char));
 	if (appdataFolder == NULL) {
 		perror("calloc");
 		_exit(-2);
 	}
 	
-	sprintf(appdataFolder, "mkdir \"%s/AniLoader\" > nul 2> nul", getenv("APPDATA"));
-	system(appdataFolder);
+	sprintf(appdataFolder, "%s/AniLoader", getenv("APPDATA"));
+	mkdir(appdataFolder);
 
 	// Step 2:
 	//	- Controllare se l'anime e' gia' presente nei preferiti
@@ -149,7 +149,7 @@ void CheckForUpdatesRoutine () {
 			// Skippo questo anime e passo a quello dopo
 			continue;
 
-		// Controllo episodi usciti, printf() solo a scopo grafico
+		// Controllo episodi usciti
 		int nEpi = atoi(fileAnimeData[3]);
 		
 		// Elimino se, e solo se, sono rispettate le seguenti regole:

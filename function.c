@@ -14,7 +14,7 @@ void starting () {
 	printf("########################################################\n");
 	printf("#                                                      #\n");
 	printf("#                      " ANSI_COLOR_GREEN "Ani-Loader" ANSI_COLOR_RESET "                      #\n");
-	printf("#                       v. 1.7.6                       #\n");
+	printf("#                       v. 1.7.7                       #\n");
 	printf("#                                                      #\n");
 	printf("#            </>     - " ANSI_COLOR_GREEN "By Alchyon" ANSI_COLOR_RESET " -     </>            #\n");
 	printf("#     " ANSI_COLOR_CYAN "GitHub" ANSI_COLOR_RESET ": " ANSI_COLOR_CYAN "https://github.com/Alchyon/AniLoader" ANSI_COLOR_RESET "     #\n");
@@ -29,9 +29,9 @@ void optionMenu () {
 	printf("########################################################\n");
 	printf("#                                                      #\n");
 	printf("#" ANSI_COLOR_YELLOW "  INVIO" ANSI_COLOR_RESET " -- > Cerca un anime                           #\n");
-	printf("#" ANSI_COLOR_YELLOW "  1" ANSI_COLOR_RESET " -- > Controlla l'ultimo changelog riassuntivo     #\n");
+	printf("#" ANSI_COLOR_YELLOW "  1" ANSI_COLOR_RESET " -- > Controlla l'ultimo changelog                 #\n");
 	printf("#" ANSI_COLOR_YELLOW "  2" ANSI_COLOR_RESET " -- > Visualizza o elimina gli anime preferiti     #\n");
-	printf("#" ANSI_COLOR_YELLOW "  3" ANSI_COLOR_RESET " -- > Ricerca gli aggiornamenti per i preferiti    #\n");
+	printf("#" ANSI_COLOR_YELLOW "  3" ANSI_COLOR_RESET " -- > Controlla gli aggiornamenti per i preferiti  #\n");
 	printf("#" ANSI_COLOR_YELLOW "  ESC" ANSI_COLOR_RESET " -- > Esci dal programma                         #\n");
 	printf("#                                                      #\n");
 	printf("########################################################\n");
@@ -42,7 +42,7 @@ void optionMenu () {
 	while (option != 13 && option != 27 && option != '1' && option != '2' && option != '3' && option != EOF);
 
 	// Il doppio switch serve ad evitare di inserire codice triplo nei vari case, questo e' un modo un po' piu' 'pulito'
-	// '\n' e '\r' vengono gestiti solo nel secondo case altrimenti avrebbero codice ripetuto
+	// '\n' e '\r' vengono gestiti solo nel secondo case per evitare ripetizioni
 	system(clearScreen);
 	switch (option) {
 		case '1':	changelog();
@@ -477,7 +477,7 @@ char *downloadCorrectPage (cookie *biscuit, char *pageDirectLink) {
 }
 
 animeEpisodeData *getEpisodeExtension (char **pageDataResult, int line) {
-	bool noData = true;
+	int lineCounter = 0;
 	char *moment;
 
 	// Dichiaro e alloco la struttura che conterra' i dati calcolati dalla funzione
@@ -500,61 +500,15 @@ animeEpisodeData *getEpisodeExtension (char **pageDataResult, int line) {
 
 	// Inizio calcoli su ogni riga del file letto
 	// Skippo le prime 200 dato che sono header inutili, computazione in meno da fare
-	for (int i = 200; i < line; i++) {
+	for (lineCounter = 200; lineCounter < line; lineCounter++) {
 		// Mancanza server di AnimeWorld > errore a prescindere
-		if (noData) {
-			char *server = strstr(pageDataResult[i], serverID);
-			if (server != NULL)
-				noData = false;
-		}
-
-		if (!noData) {
-			// Server trovato
-			char *serverCheck = strstr(pageDataResult[i], "data-name=\"" serverNumber "\" data-type=\"iframe\" data-id=\"9\"");
-			if (serverCheck != NULL) {
-				// Ciclo per evitare di dover fare controlli separati
-				for (; i < line; i++) {
-					char *dataID = strstr(pageDataResult[i], "<a data-episode-id=\"");
-					if (dataID != NULL) {
-						// != NULL > episodio trovato
-						// Rialloco lo spazio necessario a moment per contenere i dati
-						moment = (char *) realloc(moment, sizeof(char) * (strlen(pageDataResult[i]) + 1));
-						strcpy(moment, pageDataResult[i]);
-
-						// Forzo lo script a raggiungere la parte interessata dalle " (virgolette)
-						char *token = strtok(moment, "\"");
-						token = strtok(NULL, "\"");
-						token = strtok(NULL, "\"");
-						token = strtok(NULL, "\"");
-						token = strtok(NULL, "\"");
-						token = strtok(NULL, "\"");
-
-						// Alloco l'array che conterra' l'estensione, il "+10" e' dovuto al fatto che alcuni ID hanno piu' di 5 caratteri
-						// Ottengo l'ID dal tag "data-id"
-						episodeData->animeEpisodeExtension[episodeData->numberOfEpisode] = (char *) calloc(strlen(token) + 10, sizeof(char));
-						if (episodeData->animeEpisodeExtension[episodeData->numberOfEpisode] == NULL) {
-							perror("calloc");
-							_exit(-2);
-						}
-
-						strcpy(episodeData->animeEpisodeExtension[episodeData->numberOfEpisode], token);
-						episodeData->numberOfEpisode++;
-
-						// Controllo se sono presenti ulteriori div successivi
-						if (strstr(pageDataResult[i + 1], "</ul>") != NULL && strstr(pageDataResult[i + 2], "<a data-episode-id=\"") == NULL) {
-							// In caso negativo, termino il ciclo, mi salvo il valore di "i" per getAnimeStatus(...);
-							episodeData->rLine = i;
-							i = line;
-							break;
-						}
-					}
-				}
-			}
-		}
+		char *server = strstr(pageDataResult[lineCounter], serverID);
+		if (server != NULL)
+			break;
 	}
 
-	if (noData) {
-		// Error 404: Server not found!
+	// Server non trovato
+	if (lineCounter == line) {
 		system(clearScreen);
 		printf(ANSI_COLOR_YELLOW "Episodi disponibili solo su server esterni o su VVVVID!" ANSI_COLOR_RESET "\n");
 		printf(ANSI_COLOR_RED "Errore: impossibile scaricare attraverso questo programma..." ANSI_COLOR_RESET "\n");
@@ -566,7 +520,53 @@ animeEpisodeData *getEpisodeExtension (char **pageDataResult, int line) {
 		return episodeData;
 	}
 
-	free(moment);
+	// Server trovato, ricerca div
+	for (; lineCounter < line; lineCounter++) {
+		char *serverCheck = strstr(pageDataResult[lineCounter], "data-name=\"" serverNumber "\" data-type=\"iframe\" data-id=\"9\"");
+		if (serverCheck != NULL)
+			break;
+	}
+
+	// div trovato, estrazione degli ID
+	for (; lineCounter < line; lineCounter++) {
+		char *dataID = strstr(pageDataResult[lineCounter], "<a data-episode-id=\"");
+		if (dataID != NULL) {
+			// != NULL > episodio trovato
+			// Rialloco lo spazio necessario a moment per contenere i dati
+			moment = (char *) realloc(moment, sizeof(char) * (strlen(pageDataResult[lineCounter]) + 1));
+			strcpy(moment, pageDataResult[lineCounter]);
+
+			// Forzo lo script a raggiungere la parte interessata dalle " (virgolette)
+			char *token = strtok(moment, "\"");
+			token = strtok(NULL, "\"");
+			token = strtok(NULL, "\"");
+			token = strtok(NULL, "\"");
+			token = strtok(NULL, "\"");
+			token = strtok(NULL, "\"");
+
+			// Alloco l'array che conterra' l'estensione, il "+10" e' dovuto al fatto che alcuni ID hanno piu' di 5 caratteri
+			// Ottengo l'ID dal tag "data-id"
+			episodeData->animeEpisodeExtension[episodeData->numberOfEpisode] = (char *) calloc(strlen(token) + 10, sizeof(char));
+			if (episodeData->animeEpisodeExtension[episodeData->numberOfEpisode] == NULL) {
+				perror("calloc");
+				_exit(-2);
+			}
+
+			strcpy(episodeData->animeEpisodeExtension[episodeData->numberOfEpisode], token);
+			episodeData->numberOfEpisode++;
+
+			// Controllo se sono presenti ulteriori div successivi
+			if (strstr(pageDataResult[lineCounter + 1], "</ul>") != NULL && strstr(pageDataResult[lineCounter + 2], "<a data-episode-id=\"") == NULL) {
+				// In caso negativo, termino il ciclo, mi salvo il valore di "lineCounter" per getAnimeStatus(...);
+				episodeData->rLine = lineCounter;
+				lineCounter = line;
+
+				free(moment);
+				break;
+			}
+		}
+	}
+
 	return episodeData;
 }
 
@@ -592,7 +592,7 @@ char **getAnimeStatus(char **pageDataResult, int line, int startingPoint) {
 	// data[0] -> numero di episodi previsti, il programma non stampa mai questo dato se non sono presenti episodi (caso "non rilasciato")
 	// data[1] -> stato dell'anime, "In corso", "Completato", "Non rilasciato", "Droppato" ... "0" (sconosciuto), il caso "Non rilasciato" non dovrebbe mai avvenire
 	// data[2] -> data di uscita in parole
-	data[0][0] = '\0';
+	data[0][0] = '?';	data[0][1] = '?';	data[0][2] = '\0';
 	data[2][0] = '0';	data[2][1] = '\0';
 
 	// Inizio calcoli su ogni riga del file
@@ -886,6 +886,9 @@ void downloadPrepare (animeEpisodeData *lastData, downloadOption *settings, cook
 				break;
 	}
 
+	// Eseguito una volta a monte e riciclato
+	char *dirPassing = fixDirectoryName(name);
+
 	// Download effettivo, parti comuni unite, printf() separati tramite switch sovrastante
 	for (int i = settings->firstEpisode; i < settings->secondEpisode; i++) {
 		printf("Download episodio %d\n", i + 1);
@@ -895,7 +898,7 @@ void downloadPrepare (animeEpisodeData *lastData, downloadOption *settings, cook
 
 		// Chiamo la funzione che gestisce la creazione del comando finale da eseguire
 		if (strcmp(directDownloadLink, "ERROR") != 0)
-			downloadFile(lastData, settings, biscuit, directDownloadLink, name, i);
+			downloadFile(lastData, settings, biscuit, directDownloadLink, dirPassing, i);
 		else
 			printf(ANSI_COLOR_RED "Si e' verificato un errore per l'episodio %d" ANSI_COLOR_RESET "\n", i + 1);
 
@@ -906,22 +909,21 @@ void downloadPrepare (animeEpisodeData *lastData, downloadOption *settings, cook
 
 void createDirectory (downloadOption *settings, char *name) {
 	// Controllo se la directory e' stata modificata, se non esistente, la creo
-	char *mkdir = (char *) calloc(strlen(settings->downloadDirectory) + strlen(createPath("")) + strlen(name) + 100, sizeof(char));
-	if (mkdir == NULL) {
+	char *dirPath = (char *) calloc(strlen(settings->downloadDirectory) + strlen(createPath("")) + strlen(name) + 100, sizeof(char));
+	if (dirPath == NULL) {
 			perror("calloc");
 			_exit(-2);
 	}
 	
-	// Devio i messaggi di 'stdout' e 'stderr' su 'nul' in modo che l'utente non veda
-	// l'avviso di directory gia' esistente
+	// Impostazione della directory, funzione mkdir()
 	if (strlen(settings->downloadDirectory) != 0)
-		sprintf(mkdir, "mkdir \"%s\" > nul 2> nul", settings->downloadDirectory);
+		sprintf(dirPath, "%s", settings->downloadDirectory);
 	else
-		sprintf(mkdir, "mkdir \"%s%s\" > nul 2> nul", createPath(""), fixDirectoryName(name));
+		sprintf(dirPath, "%s%s", createPath(""), fixDirectoryName(name));
 	
-	// Eseguo e dealloco mkdir
-	system(mkdir);
-	free(mkdir);
+	// Esecuzione e free()
+	mkdir(dirPath);
+	free(dirPath);
 }
 
 char *getDirectEpisodeDownloadLink (cookie *biscuit, char *pageDirectLink, char *extension) {
@@ -992,9 +994,9 @@ char *getDirectEpisodeDownloadLink (cookie *biscuit, char *pageDirectLink, char 
 	return "ERROR";
 }
 
-void downloadFile (animeEpisodeData *lastData, downloadOption *settings, cookie *biscuit, char *directDownloadLink, char *name, int i) {
+void downloadFile (animeEpisodeData *lastData, downloadOption *settings, cookie *biscuit, char *directDownloadLink, char *dirPassing, int i) {
 	// Creo un comando curl che scarica l'episodio dal link ottenuto prima in caso il valore di return sia diverso da "ERROR"
-	char *downloadCommandLink = (char *) calloc(strlen(directDownloadLink) + strlen(name) + 500, sizeof(char));
+	char *downloadCommandLink = (char *) calloc(strlen(directDownloadLink) + strlen(settings->downloadDirectory) + strlen(settings->nameEpisode) + strlen(dirPassing) + 200, sizeof(char));
 	if (downloadCommandLink == NULL) {
 		perror("calloc");
 		_exit(-2);
@@ -1004,7 +1006,7 @@ void downloadFile (animeEpisodeData *lastData, downloadOption *settings, cookie 
 	if (strlen(settings->downloadDirectory) != 0)
 		sprintf(downloadCommandLink, "curl -L -# \"%s\" -o \"%s\0", directDownloadLink, settings->downloadDirectory);
 	else
-		sprintf(downloadCommandLink, "curl -L -# \"%s\" -o \"%s%s/\0", directDownloadLink, createPath(""), fixDirectoryName(name));
+		sprintf(downloadCommandLink, "curl -L -# \"%s\" -o \"%s%s/\0", directDownloadLink, createPath(""), dirPassing);
 
 	// Controllo se il nome e' stato modificato
 	if (settings->nameEpisodeChange)
@@ -1025,7 +1027,7 @@ void downloadFile (animeEpisodeData *lastData, downloadOption *settings, cookie 
 
 	// Inserimento numero dell'episodio ed estensione del file, effettuo qui il controllo per i cookie
 	if (biscuit != NULL)
-		sprintf(downloadCommandLink + strlen(downloadCommandLink), "%d.mp4 --cookie \"%s=%s\"\0", i + 1, biscuit->name, biscuit->token);
+		sprintf(downloadCommandLink + strlen(downloadCommandLink), "%d.mp4\" --cookie \"%s=%s\"\0", i + 1, biscuit->name, biscuit->token);
 	else
 		sprintf(downloadCommandLink + strlen(downloadCommandLink), "%d.mp4\0", i + 1);
 
