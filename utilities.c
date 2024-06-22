@@ -64,6 +64,12 @@ void changelog () {
 	printf("#   conosciuti in numero esatto.                       #\n");
 	printf("# - Ottimizzazioni minori.                             #\n");
 	printf("#                                                      #\n");
+	printf("#" ANSI_COLOR_CYAN" 1.7.8 "ANSI_COLOR_RESET"                                               #\n");
+	printf("# - Risolto un errore di una funzione che comportava   #\n");
+	printf("#   un crash quando il nome dell'anime non necessitava #\n");
+	printf("#   di modifiche.                                      #\n");
+	printf("# - Aggiunta la data della versione.                   #\n");
+	printf("#                                                      #\n");
 	printf("########################################################\n");
 }
 
@@ -166,7 +172,7 @@ char **createMatrixByEscapeCharacter (char *string, char *escape, int *line) {
 
 char *fixDirectoryName (char *name) {
 	unsigned int i, k;
-	char *fix = (char *) calloc(strlen(name), sizeof(char));
+	char *fix = (char *) calloc(strlen(name) + 1, sizeof(char));
 
 	for (i = 0, k = 0; i < strlen(name); i++) {
 		switch(name[i]) {
