@@ -193,6 +193,13 @@ void CheckForUpdatesRoutine () {
 					break;
 		}
 
+		// Controllo valori degli episodi, in caso vi siano valori negativi, allora errore e skip al prossimo
+		// Nota: previene la sovrascrittura di quelli gia' scaricati
+		if (dwlOpt->firstEpisode < 0 || dwlOpt->secondEpisode < 0) {
+			printf(ANSI_COLOR_RED "Errore durante il recupero delle informazioni per %s" ANSI_COLOR_RESET, lib->libData[i]);
+			continue;
+		}
+
 		// Numero anime da scaricare
 		if (nEpi == 0) {
 			// Li scarico tutti
@@ -298,8 +305,13 @@ void printLibrary () {
 		printf("Attualmente non ci sono preferiti salvati!\n");
 	else {
 		printf(ANSI_COLOR_GREEN "Elenco anime preferiti:\n\n" ANSI_COLOR_RESET);
-		for (int i = 0; i < lib->libLine; i++)
+		for (int i = 0; i < lib->libLine; i++) {
+			// Spazio aggiuntivo per allineamento
+			if (lib->libLine > 9 && i < 10)
+				printf(" ");
+			
 			printf(ANSI_COLOR_YELLOW "%d" ANSI_COLOR_RESET "] %s\n", i, lib->libData[i]);
+		}
 	}
 }
 
