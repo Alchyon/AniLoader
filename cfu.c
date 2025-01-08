@@ -24,7 +24,7 @@ void addOnLoad (char *name, char *pageDirectLink, char *ext, char *downloadDirec
 
 	// Step 2:
 	//	- Controllare se l'anime e' gia' presente nei preferiti
-	// Per fare questo, si usa un formato standard di nomi, ovvero nomeAnime.cfu, questo file verra' letto e, se il controllo da esito positivo, verra'
+	// Per fare questo, si usa un formato standard di nomi, ovvero "nomeAnime.cfu", questo file verra' letto e, se il controllo da esito positivo, verra'
 	// notificato all'utente. L'eliminazione puo' avvenire solo dal menu' principale.
 	char *fileName = (char *) calloc(strlen(appdataFolder) + strlen(name) + 50, sizeof(char));
 	if (fileName == NULL) {
@@ -87,7 +87,6 @@ void CheckForUpdatesRoutine () {
 
 	// #1 & #2
 	library *lib = getLibrary();
-	cookie *cookie = NULL;
 	char *pageContent;
 
 	// #3
@@ -103,7 +102,7 @@ void CheckForUpdatesRoutine () {
 		sprintf(filePath, "%s\\AniLoader\\%s.cfu", appdata, lib->libData[i]);
 
 		// Considerato che extractInMemoryFromFile() ha una _exit() in caso di file non esistente, verifico adesso che
-		// esista e chiamo un break in caso negativo
+		// esista e chiamo un continue in caso negativo
 		FILE *f = fopen(filePath, "r");
 		if (f == NULL)
 			continue;
@@ -115,23 +114,14 @@ void CheckForUpdatesRoutine () {
 
 		// Ora partono le chiamate al main code per riutilizzare le funzioni, alcune strutture verranno ricreate in maniera
 		// automatica in quanto i parametri sono gia' presenti nel file di salvataggio (... .cfu)
-		// Il do/while serve a gestire la presenza, o meno, di cookie necessari per l'accesso al sito
-		do {
-			// Creo il comando per scaricare la pagina corretta e lo eseguo
-			downloadCorrectPage(cookie, fileAnimeData[2]);
-			char *path = createPath("page.txt");
 
-			// Ottengo il contenuto della pagina dal file ed elimino lo stesso
-			pageContent = extractInMemoryFromFile(path, true);
-			free(path);
+		// Creo il comando per scaricare la pagina corretta e lo eseguo
+		downloadCorrectPage(fileAnimeData[2]);
+		char *path = createPath("page.txt");
 
-			// Controllo cookie, se sono attivi, si ripete
-			if (!strstr(pageContent, "document.cookie"))
-				break;
-			else
-				cookie = getCookie(pageContent);
-		}
-		while (true);
+		// Ottengo il contenuto della pagina dal file ed elimino lo stesso
+		pageContent = extractInMemoryFromFile(path, true);
+		free(path);
 
 		// Trasformo l'array in una matrice
 		int line = 0;
@@ -148,8 +138,14 @@ void CheckForUpdatesRoutine () {
 			// Errore, nessun episodio trovato
 			// Skippo questo anime e passo a quello dopo
 			continue;
+		
+		if (lastData->numberOfEpisode == 0) {
+			// Server trovato ma nessun episodio disponibile
+			printf(ANSI_COLOR_RED "Errore durante il recupero delle informazioni per: %s\n" ANSI_COLOR_RESET, lib->libData[i]);
+			continue;
+		}
 
-		// Controllo episodi usciti
+		// Controllo episodi usciti e scaricati fino a questo momento
 		int nEpi = atoi(fileAnimeData[3]);
 		
 		// Elimino se, e solo se, sono rispettate le seguenti regole:
@@ -167,36 +163,18 @@ void CheckForUpdatesRoutine () {
 			printf("Nessun nuovo episodio per: %s\n", lib->libData[i]);
 			continue;
 		}
-		else
-			printf("\n");
 
 		// Creazione struct dati per downloadFile()
-		downloadOption *dwlOpt = (downloadOption *) malloc(sizeof(downloadOption));
+		downloadOption *dwlOpt = (downloadOption *) malloc(sizeof(downloadOption) + 1);
 		if (dwlOpt == NULL) {
 			perror("malloc");
 			_exit(-2);
 		}
 
-		// Numero anime da scaricare, modificato in seguito ai cambiamenti
-		// apportati al main code
-		switch (nEpi) {
-			case 0:	// Li scarico tutti
-					dwlOpt->option = 0;
-					dwlOpt->firstEpisode = 0;
-					dwlOpt->secondEpisode = lastData->numberOfEpisode;
-					break;
-			
-			case 1:	// Scarico l'ultimo, ovvero e' uscito un nuovo episodio dall'ultimo controllo
-					dwlOpt->option = 1;
-					dwlOpt->firstEpisode = lastData->numberOfEpisode;
-					dwlOpt->secondEpisode = dwlOpt->firstEpisode + 1;
-					break;
-		}
-
 		// Controllo valori degli episodi, in caso vi siano valori negativi, allora errore e skip al prossimo
 		// Nota: previene la sovrascrittura di quelli gia' scaricati
-		if (dwlOpt->firstEpisode < 0 || dwlOpt->secondEpisode < 0) {
-			printf(ANSI_COLOR_RED "Errore durante il recupero delle informazioni per %s" ANSI_COLOR_RESET, lib->libData[i]);
+		if (dwlOpt->firstEpisode < 0 || dwlOpt->secondEpisode < 0 || dwlOpt->secondEpisode - dwlOpt->firstEpisode < 0) {
+			printf(ANSI_COLOR_RED "Errore durante il recupero delle informazioni per: %s\n" ANSI_COLOR_RESET, lib->libData[i]);
 			continue;
 		}
 
@@ -248,7 +226,8 @@ void CheckForUpdatesRoutine () {
 
 		// #4: struct pronta, chiamata a funzione e terminazione del codice
 		// 	   il printf() serve solo a migliorare l'output grafico
-		downloadPrepare(lastData, dwlOpt, cookie, copy, lib->libData[i]);
+		printf("\n");
+		downloadPrepare(lastData, dwlOpt, copy, lib->libData[i]);
 		printf("\n");
 
 		// #5: Aggiornamento del file .cfu
@@ -349,7 +328,9 @@ int libraryOption () {
 			printLibrary();
 
 			printf("\nDigita il numero a lato dell'anime da eliminare o -1 per uscire: ");
+			printf(ANSI_COLOR_YELLOW);
 			scanf("%d", &toDel);
+			printf(ANSI_COLOR_RESET);
 		} while (toDel < -1 || toDel > lib->libLine - 1);
 
 		// Dopo lo scanf(), intercetto il '\n' che rimane in memoria per prevenire errori nella ricerca

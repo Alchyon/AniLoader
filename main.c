@@ -3,18 +3,27 @@
 #include "utilities.h"
 #include "cfu.h"
 
-int main () {
-	// TO-DO, usare strcasecmp() per non badare al case sensitive
-	// - Avvio con parametri ??:
-	//	-	--curl		directory custom per l'eseguibile di curl, bypassa il problema di limitazione dell'OS
-	//	-	--cfu		avvio diretto per controllare i nuovi episodi usciti, tralasciando tutto il resto del codice
-
+// Esecuzione del codice prima del main(), utilizzata per inizializzare il cookie
+void __attribute__ ((constructor)) premain() {
 	#if !_WIN32_WINNT_WIN10
 		printf("Programma non compatibile con il sistema operativo.\n");
 		printf("Supportati: Windows 10, Windows 11.\n");
 		system("pause");
 		_exit(-3);
 	#endif
+
+	// Genera il cookie se non esistente, false significa che vi e' stato un errore
+	if (generateCookieFile() == false) {
+		printf("Impossibile generare un file di cookie, server non raggiungibile o mancanza di permessi di scrittura\n");
+		system("pause");
+		_exit(0);
+	}
+}
+
+int main () {
+	// TO-DO, usare strcasecmp() per non badare al case sensitive
+	// - Avvio con parametri ??:
+	//	-	--curl		directory custom per l'eseguibile di curl, bypassa il problema di limitazione dell'OS
 
 	// Funzione con il solo scopo grafico
 	starting();
@@ -26,30 +35,20 @@ int main () {
 
 	// Variabili usate nella parte sottostante per il funzionamento base del programma, dichiarate qui per questioni di scope
 	char *path;
-	cookie *cookie = NULL;
 	char *searchData;
 	int line = 0;
 	char **searchDataResult;
 	int divFound = 0;
 
-	do {
-		// Creazione ed esecuzione del comando per scaricare la pagina di ricerca
-		// URL ... /search?keyword= ...
-		searchAnimeByName(cookie, name);
+	// Creazione ed esecuzione del comando per scaricare la pagina di ricerca
+	// URL ... /search?keyword= ...
+	searchAnimeByName(name);
 
-		// Inserisco in una stringa il path assoluto del file scaricato poi...
-		// Leggo tutto il file e lo inserisco in un array
-		path = createPath("search.txt");
-		searchData = extractInMemoryFromFile(path, true);
-		free(path);
-
-		// Controllo cookie, se sono attivi, si ripete
-		if (!strstr(searchData, "document.cookie"))
-			break;
-		else
-			cookie = getCookie(searchData);
-	}
-	while (true);
+	// Inserisco in una stringa il path assoluto del file scaricato poi...
+	// Leggo tutto il file e lo inserisco in un array
+	path = createPath("search.txt");
+	searchData = extractInMemoryFromFile(path, true);
+	free(path);
 
 	// Creo una matrice contenente tutte le righe del file splittando i '\n' dal file
 	line = 0;
@@ -96,7 +95,7 @@ int main () {
 	
 	// Scarico la pagina di redirect dell'anime selezionato, e' un path che identifica l'anime ma non gli episodi di esso
 	// URL ... /search?keyword?= ... / nome_Anime /
-	path = createPath(downloadRedirectPage(baseData, cookie, selected));
+	path = createPath(downloadRedirectPage(baseData, selected));
 
 	// Leggo tutto il file e lo inserisco in un array
 	char *redirectContent = extractInMemoryFromFile(path, true);
@@ -108,7 +107,7 @@ int main () {
 	free(redirectContent);
 
 	// Creo il comando per scaricare la pagina corretta e lo eseguo
-	path = createPath(downloadCorrectPage(cookie, pageDirectLink));
+	path = createPath(downloadCorrectPage(pageDirectLink));
 
 	// Ottengo il contenuto della pagina dal file ed elimino il file residuo
 	char *pageContent = extractInMemoryFromFile(path, true);
@@ -140,7 +139,7 @@ int main () {
 	printf("Download in corso con le impostazioni fornite, questo processo potrebbe richiedere molto tempo.\n");
 	printf("Non chiudere il programma o il download verra' interrotto e sara' irrecuperabile.\n");
 	printf(ANSI_COLOR_GREEN "Avvio. . ." ANSI_COLOR_RESET "\n\n");
-	downloadPrepare(lastData, settings, cookie, pageDirectLink, baseData->correctAnimeName[selected]);
+	downloadPrepare(lastData, settings, pageDirectLink, baseData->correctAnimeName[selected]);
 	
 	printf(ANSI_COLOR_GREEN "\nDownload completato!\n" ANSI_COLOR_RESET);
 	printf("Grazie per aver usato AniLoader, premi INVIO per chiudere il programma...");
@@ -152,6 +151,9 @@ int main () {
 	free(lastData);
 	free(animeStatus);
 	free(settings);
+	
+	free(COOKIECMD);
+	COOKIECMD = NULL;
 
 	return 0;
 }

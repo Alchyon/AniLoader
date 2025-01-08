@@ -28,3 +28,12 @@
 #define ANSI_COLOR_MAGENTA "\x1b[35m"
 #define ANSI_COLOR_CYAN    "\x1b[36m"
 #define ANSI_COLOR_RESET   "\x1b[0m"
+
+// COOKIE SECTION!
+#define APPDATA getenv("APPDATA")
+#define COOKIEFILE "__cookies.cookie"
+#define COOKIESCRIPT_FORMAT "--cookie-jar \"%s\\AniLoader\\" COOKIEFILE "\" --cookie \"%s\\AniLoader\\" COOKIEFILE "\""
+#define INIT_COOKIESCRIPT(buffer, appdata) snprintf(buffer, 1024, COOKIESCRIPT_FORMAT, appdata, appdata)
+
+// Variabile globale che contiene tutto lo script di COOKIESCRIPT, calcolato una volta!
+extern char *COOKIECMD;

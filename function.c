@@ -9,13 +9,63 @@
 // -2 -> errore allocazione memoria
 // -3 -> OS non supportato
 
+// Variabile globale utilizzata per i COOKIE
+char *COOKIECMD = NULL;
+
+bool generateCookieFile () {
+	int maximumRetry = 3;
+
+	char *path = (char *) calloc(strlen(APPDATA) + 100, sizeof(char));
+	if (path == NULL) {
+		perror("calloc");
+		_exit(-2);
+	}
+
+	do {
+		// Creazione percorso del file
+		sprintf(path, "%s\\AniLoader\\%s", APPDATA, COOKIEFILE);
+
+		// Viene effettuato un controllo sull'esistenza del file
+		FILE *f = fopen(path, "r");
+		if (f != NULL) {
+			fclose(f);
+			free(path);
+
+			// Istanzia il cookie
+			cookieInitialization();
+			return true;
+		}
+
+		// Se il file non esiste, si forza una richiesta esclusivamente per generarlo
+		sprintf(path, "curl --cookie-jar \"%s\\AniLoader\\%s\" -s %s", APPDATA, COOKIEFILE, URL);
+		system(path);
+	}
+	while (maximumRetry-- != 0);
+
+	return false;
+}
+
+// Questa funzione e' necessaria per inizializzare la variabile COOKIECMD a livello globale, visibile su tutti i file,
+// utilizzata per calcolare una volta soltanto tutto il papiro da passare al comando
+void cookieInitialization() {
+	// Allocazione dinamica della memoria per il comando
+	COOKIECMD = (char*) calloc(1024, sizeof(char));
+	if (COOKIECMD == NULL) {
+		fprintf(stderr, "Errore nell'allocazione della memoria.\n");
+		exit(1);
+	}
+
+	// Inizializzazione del comando
+	INIT_COOKIESCRIPT(COOKIECMD, APPDATA);
+}
+
 void starting () {
 	system(clearScreen);
 	printf("########################################################\n");
 	printf("#                                                      #\n");
 	printf("#                      " ANSI_COLOR_GREEN "Ani-Loader" ANSI_COLOR_RESET "                      #\n");
-	printf("#                       v. 1.7.9                       #\n");
-	printf("#                      22/12/2024                      #\n");
+	printf("#                       v. 1.8.0                       #\n");
+	printf("#                      08/01/2025                      #\n");
 	printf("#                                                      #\n");
 	printf("#            </>     - " ANSI_COLOR_GREEN "By Alchyon" ANSI_COLOR_RESET " -     </>            #\n");
 	printf("#     " ANSI_COLOR_CYAN "GitHub" ANSI_COLOR_RESET ": " ANSI_COLOR_CYAN "https://github.com/Alchyon/AniLoader" ANSI_COLOR_RESET "     #\n");
@@ -104,57 +154,18 @@ char *insertName () {
 	return name;
 }
 
-void searchAnimeByName (cookie *biscuit, char* name) {
+void searchAnimeByName (char* name) {
 	// Creazione comando
-	char *command = (char *) calloc(strlen(name) + 300, sizeof(char));
+	char *command = (char *) calloc(strlen(COOKIECMD) + strlen(name) + 300, sizeof(char));
 	if (command == NULL) {
 		perror("calloc");
 		_exit(-2);
 	}
 
-	sprintf(command, "curl -s \"%s/search?keyword=%s\" > \"%s\"", URL, name, createPath("search.txt"));
-
-	// Aggiunta cookie al comando
-	if (biscuit != NULL)
-		sprintf(command + strlen(command), " --cookie \"%s=%s\"", biscuit->name, biscuit->token);
+	sprintf(command, "curl %s -s \"%s/search?keyword=%s\" > \"%s\"", COOKIECMD, URL, name, createPath("search.txt"));
 
 	system(command);
 	free(command);
-}
-
-cookie *getCookie (char *data) {
-	cookie *biscuit = (cookie *) malloc(sizeof(cookie));
-	if (biscuit == NULL) {
-		perror("malloc");
-		_exit(2);
-	}
-	
-	char *token = strtok(data, "\"= ");
-	token = strtok(NULL, "\"= ");
-	token = strtok(NULL, "\"= ");
-	token = strtok(NULL, "\"= ");
-
-	// Nome del cookie
-	token = strtok(NULL, "\"= ");
-	biscuit->name = (char *) calloc(strlen(token) + 1, sizeof(char));
-	if (biscuit->name == NULL) {
-		perror("calloc");
-		_exit(-2);
-	}
-
-	strcpy(biscuit->name, token);
-
-	// Token (value)
-	token = strtok(NULL, "\"= ");
-	biscuit->token = (char *) calloc(strlen(token) + 1, sizeof(char));
-	if (biscuit->token == NULL) {
-		perror("calloc");
-		_exit(-2);
-	}
-
-	strcpy(biscuit->token, token);
-
-	return biscuit;
 }
 
 int searchAnimeDiv (char **searchDataResult, int line) {
@@ -420,19 +431,15 @@ int selectAnime (animeSearchData *baseData) {
 	return selected;
 }
 
-char *downloadRedirectPage (animeSearchData *baseData, cookie *biscuit, int selected) {
-	char *command = (char *) calloc(strlen(baseData->findAnimeLink[selected]) + 300, sizeof(char));
+char *downloadRedirectPage (animeSearchData *baseData, int selected) {
+	char *command = (char *) calloc(strlen(COOKIECMD) + strlen(baseData->findAnimeLink[selected]) + 300, sizeof(char));
 	if (command == NULL) {
 		perror("calloc");
 		_exit(-2);
 	}
 
 	// Concateno in una stringa il comando da eseguire
-	sprintf(command, "curl -s \"%s%s\" > \"%s\"", URL, baseData->findAnimeLink[selected], createPath("redirect.txt"));
-
-	// Aggiunta cookie al comando
-	if (biscuit != NULL)
-		sprintf(command + strlen(command), " --cookie \"%s=%s\"", biscuit->name, biscuit->token);
+	sprintf(command, "curl %s -s \"%s%s\" > \"%s\"", COOKIECMD ,URL, baseData->findAnimeLink[selected], createPath("redirect.txt"));
 
 	system(command);
 	free(command);
@@ -458,18 +465,14 @@ char *getPageLink (char *redirectContent) {
 	return momentCopy;
 }
 
-char *downloadCorrectPage (cookie *biscuit, char *pageDirectLink) {
-	char *command = (char *) calloc(strlen(pageDirectLink) + 300, sizeof(char));
+char *downloadCorrectPage (char *pageDirectLink) {
+	char *command = (char *) calloc(strlen(COOKIECMD) + strlen(pageDirectLink) + 300, sizeof(char));
 	if (command == NULL) {
 		perror("calloc");
 		_exit(-2);
 	}
 
-	sprintf(command, "curl -s \"%s%s\" > \"%s\"", URL, pageDirectLink, createPath("page.txt"));
-
-	// Aggiunta cookie al comando
-	if (biscuit != NULL)
-		sprintf(command + strlen(command), " --cookie \"%s=%s\"", biscuit->name, biscuit->token);
+	sprintf(command, "curl %s -s \"%s%s\" > \"%s\"", COOKIECMD, URL, pageDirectLink, createPath("page.txt"));
 
 	system(command);
 	free(command);
@@ -848,7 +851,7 @@ downloadOption *downloadMenu (char *name, int numberOfEpisode, char **animeStatu
 }
 
 // Funzioni che servono a ottenere informazioni e dati necessari al solo download
-void downloadPrepare (animeEpisodeData *lastData, downloadOption *settings, cookie *biscuit, char *pageDirectLink, char *name) {
+void downloadPrepare (animeEpisodeData *lastData, downloadOption *settings, char *pageDirectLink, char *name) {
 	// Correggo il directLink eliminando l'estensione
 	int i;
 	for (i = strlen(pageDirectLink); pageDirectLink[i] != '/'; i--);
@@ -895,11 +898,11 @@ void downloadPrepare (animeEpisodeData *lastData, downloadOption *settings, cook
 		printf("Download episodio %d\n", i + 1);
 
 		// Mi faccio ritornare il link al download diretto
-		directDownloadLink = getDirectEpisodeDownloadLink(biscuit, pageDirectLink, lastData->animeEpisodeExtension[i]);
+		directDownloadLink = getDirectEpisodeDownloadLink(pageDirectLink, lastData->animeEpisodeExtension[i]);
 
 		// Chiamo la funzione che gestisce la creazione del comando finale da eseguire
 		if (strcmp(directDownloadLink, "ERROR") != 0)
-			downloadFile(lastData, settings, biscuit, directDownloadLink, dirPassing, i);
+			downloadFile(lastData, settings, directDownloadLink, dirPassing, i);
 		else
 			printf(ANSI_COLOR_RED "Si e' verificato un errore per l'episodio %d" ANSI_COLOR_RESET "\n", i + 1);
 
@@ -927,19 +930,15 @@ void createDirectory (downloadOption *settings, char *name) {
 	free(dirPath);
 }
 
-char *getDirectEpisodeDownloadLink (cookie *biscuit, char *pageDirectLink, char *extension) {
+char *getDirectEpisodeDownloadLink (char *pageDirectLink, char *extension) {
 	// Creazione comando di download
-	char *downloadCommand = (char *) calloc(strlen(extension) + strlen(pageDirectLink) + 300, sizeof(char));
+	char *downloadCommand = (char *) calloc(strlen(COOKIECMD) + strlen(pageDirectLink) + strlen(extension) + 300, sizeof(char));
 	if (downloadCommand == NULL) {
 		perror("calloc");
 		_exit(-2);
 	}
 
-	sprintf(downloadCommand, "curl -s \"%s%s%s\" -o \"%s\"", URL, pageDirectLink, extension, createPath("ep.txt"));
-
-	// Aggiunta cookie al comando, se necessario
-	if (biscuit != NULL)
-		sprintf(downloadCommand + strlen(downloadCommand), " --cookie \"%s=%s\"", biscuit->name, biscuit->token);
+	sprintf(downloadCommand, "curl %s -s \"%s%s%s\" -o \"%s\"", COOKIECMD, URL, pageDirectLink, extension, createPath("ep.txt"));
 
 	// Scarico il file
 	system(downloadCommand);
@@ -990,14 +989,14 @@ char *getDirectEpisodeDownloadLink (cookie *biscuit, char *pageDirectLink, char 
 			}
 		}
 	}
-	
+
 	free(fileEpisodeData);
 	return "ERROR";
 }
 
-void downloadFile (animeEpisodeData *lastData, downloadOption *settings, cookie *biscuit, char *directDownloadLink, char *dirPassing, int i) {
+void downloadFile (animeEpisodeData *lastData, downloadOption *settings, char *directDownloadLink, char *dirPassing, int i) {
 	// Creo un comando curl che scarica l'episodio dal link ottenuto prima in caso il valore di return sia diverso da "ERROR"
-	char *downloadCommandLink = (char *) calloc(strlen(directDownloadLink) + strlen(settings->downloadDirectory) + strlen(settings->nameEpisode) + strlen(dirPassing) + 200, sizeof(char));
+	char *downloadCommandLink = (char *) calloc(strlen(COOKIECMD) + strlen(directDownloadLink) + strlen(settings->downloadDirectory) + strlen(settings->nameEpisode) + strlen(dirPassing) + 200, sizeof(char));
 	if (downloadCommandLink == NULL) {
 		perror("calloc");
 		_exit(-2);
@@ -1005,9 +1004,9 @@ void downloadFile (animeEpisodeData *lastData, downloadOption *settings, cookie 
 
 	// Controllo se la directory e' stata modificata
 	if (strlen(settings->downloadDirectory) != 0)
-		sprintf(downloadCommandLink, "curl -L -# \"%s\" -o \"%s\0", directDownloadLink, settings->downloadDirectory);
+		sprintf(downloadCommandLink, "curl %s -L -# \"%s\" -o \"%s\0", COOKIECMD, directDownloadLink, settings->downloadDirectory);
 	else
-		sprintf(downloadCommandLink, "curl -L -# \"%s\" -o \"%s%s/\0", directDownloadLink, createPath(""), dirPassing);
+		sprintf(downloadCommandLink, "curl %s -L -# \"%s\" -o \"%s%s/\0", COOKIECMD, directDownloadLink, createPath(""), dirPassing);
 
 	// Controllo se il nome e' stato modificato
 	if (settings->nameEpisodeChange)
@@ -1026,11 +1025,8 @@ void downloadFile (animeEpisodeData *lastData, downloadOption *settings, cookie 
 	else if (i < 9)
 		strcat(downloadCommandLink, "0");
 
-	// Inserimento numero dell'episodio ed estensione del file, effettuo qui il controllo per i cookie
-	if (biscuit != NULL)
-		sprintf(downloadCommandLink + strlen(downloadCommandLink), "%d.mp4\" --cookie \"%s=%s\"\0", i + 1, biscuit->name, biscuit->token);
-	else
-		sprintf(downloadCommandLink + strlen(downloadCommandLink), "%d.mp4\0", i + 1);
+	// Inserimento numero dell'episodio ed estensione del file
+	sprintf(downloadCommandLink + strlen(downloadCommandLink), "%d.mp4\0", i + 1);
 
 	// Comando di download
 	system(downloadCommandLink);
