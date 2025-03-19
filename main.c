@@ -12,6 +12,16 @@ void __attribute__ ((constructor)) premain() {
 		_exit(-3);
 	#endif
 
+	// Creazione della cartella "AniLoader" in "... AppData/Roaming" se non pre-esistente.
+	char *appdataFolder = (char *) calloc(strlen(APPDATA) + 20, sizeof(char));
+	if (appdataFolder == NULL) {
+		perror("calloc");
+		_exit(-2);
+	}
+
+	sprintf(appdataFolder, "%s/AniLoader", APPDATA);
+	mkdir(appdataFolder);
+
 	// Genera il cookie se non esistente, false significa che vi e' stato un errore
 	if (generateCookieFile() == false) {
 		printf("Impossibile generare un file di cookie, server non raggiungibile o mancanza di permessi di scrittura\n");
@@ -21,10 +31,6 @@ void __attribute__ ((constructor)) premain() {
 }
 
 int main () {
-	// TO-DO, usare strcasecmp() per non badare al case sensitive
-	// - Avvio con parametri ??:
-	//	-	--curl		directory custom per l'eseguibile di curl, bypassa il problema di limitazione dell'OS
-
 	// Funzione con il solo scopo grafico
 	starting();
 	// Menu' iniziale
@@ -92,7 +98,7 @@ int main () {
 		free(baseData);
 		main();
 	}
-	
+
 	// Scarico la pagina di redirect dell'anime selezionato, e' un path che identifica l'anime ma non gli episodi di esso
 	// URL ... /search?keyword?= ... / nome_Anime /
 	path = createPath(downloadRedirectPage(baseData, selected));
@@ -151,7 +157,7 @@ int main () {
 	free(lastData);
 	free(animeStatus);
 	free(settings);
-	
+
 	free(COOKIECMD);
 	COOKIECMD = NULL;
 

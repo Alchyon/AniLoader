@@ -10,31 +10,19 @@ void addOnLoad (char *name, char *pageDirectLink, char *ext, char *downloadDirec
 	// Si gestisce l'aggiunta delle informazioni dell'anime selezionato alla lista degli anime che vengono controllati on-boot.
 	// Se sono qui, teoricamente ho gia' i dati richiesti per la creazione del file, quindi non dovrebbero servire ulteriori modifiche, al massimo una veloce
 	// manipolazione di stringhe su qualche info, che pero' non viene piu' riutilizzata al termine di questa funzione, in quanto void!
-	
-	// Step 1:
-	// 	- Creazione della cartella "AniLoader" in "... AppData/Roaming" se non pre-esistente.
-	char *appdataFolder = (char *) calloc(250, sizeof(char));
-	if (appdataFolder == NULL) {
-		perror("calloc");
-		_exit(-2);
-	}
-	
-	sprintf(appdataFolder, "%s/AniLoader", getenv("APPDATA"));
-	mkdir(appdataFolder);
 
-	// Step 2:
+	// Step 1:
 	//	- Controllare se l'anime e' gia' presente nei preferiti
 	// Per fare questo, si usa un formato standard di nomi, ovvero "nomeAnime.cfu", questo file verra' letto e, se il controllo da esito positivo, verra'
 	// notificato all'utente. L'eliminazione puo' avvenire solo dal menu' principale.
-	char *fileName = (char *) calloc(strlen(appdataFolder) + strlen(name) + 50, sizeof(char));
+	char *fileName = (char *) calloc(strlen(APPDATA) + strlen(name) + 30, sizeof(char));
 	if (fileName == NULL) {
 		perror("calloc");
 		_exit(-2);
 	}
 
 	// Creazione stringa per il file dell'anime corrente
-	sprintf(fileName, "%s/AniLoader/%s.cfu", getenv("APPDATA"), fixDirectoryName(name));
-	free(appdataFolder);
+	sprintf(fileName, "%s/AniLoader/%s.cfu", APPDATA, fixDirectoryName(name));
 
 	FILE *f = fopen(fileName, "r");
 	if (f != NULL) {
@@ -47,22 +35,22 @@ void addOnLoad (char *name, char *pageDirectLink, char *ext, char *downloadDirec
 
 		main();
 	}
-	
+
 	// Se sono qui significa che il file NON esiste e che quindi puo' essere creato e scritto
-	// Step 3:
+	// Step 2:
 	//	- Creazione del file per CFU
 	f = fopen(fileName, "w");
 
-	// Step 4:
+	// Step 3:
 	//	- Scrittura dati su file anime
 	fprintf(f, "6\n%s\n%s%s\n0\n%s\n%s\n", pageDirectLink, pageDirectLink, ext, downloadDirectory, nameEpisode);
 	fclose(f);
-	
-	// Step 5:
+
+	// Step 4:
 	//	- Scrittura nome su file di elenco
 	fileName[0] = '\0';
-	sprintf(fileName, "%s/AniLoader/_data.summary", getenv("APPDATA"));
-	
+	sprintf(fileName, "%s/AniLoader/_data.summary", APPDATA);
+
 	f = fopen(fileName, "a");
 	if (f != NULL) {
 		// Aggiornamento elenco
@@ -83,7 +71,6 @@ void CheckForUpdatesRoutine () {
 	//	3:	foreach summaryData entries
 	//	4:	calls to function to download, based on data
 	//  5:	update .cfu file
-	const char *appdata = getenv("APPDATA");
 
 	// #1 & #2
 	library *lib = getLibrary();
@@ -92,14 +79,14 @@ void CheckForUpdatesRoutine () {
 	// #3
 	for (int i = 0; i < lib->libLine; i++) {
 		// Read from file, no reason to allocate, elaborated one by one.
-		char *filePath = (char *) calloc(strlen(lib->libData[i]) + strlen(appdata) + 50, sizeof(char));
+		char *filePath = (char *) calloc(strlen(lib->libData[i]) + strlen(APPDATA) + 50, sizeof(char));
 		if (filePath == NULL) {
 			perror("calloc");
 			_exit(2);
 		}
 
 		// Path del singolo file, verra' resettato ad ogni iterazione, .cfu aggiunto hardcoded
-		sprintf(filePath, "%s\\AniLoader\\%s.cfu", appdata, lib->libData[i]);
+		sprintf(filePath, "%s\\AniLoader\\%s.cfu", APPDATA, lib->libData[i]);
 
 		// Considerato che extractInMemoryFromFile() ha una _exit() in caso di file non esistente, verifico adesso che
 		// esista e chiamo un continue in caso negativo
@@ -147,7 +134,7 @@ void CheckForUpdatesRoutine () {
 
 		// Controllo episodi usciti e scaricati fino a questo momento
 		int nEpi = atoi(fileAnimeData[3]);
-		
+
 		// Elimino se, e solo se, sono rispettate le seguenti regole:
 		//	- lo stato dell'anime risulta "terminato"
 		//	- il numero di episodi scaricati corrisponde al numero di episodi stimati
@@ -174,7 +161,7 @@ void CheckForUpdatesRoutine () {
 		// Controllo valori degli episodi, in caso vi siano valori negativi, allora errore e skip al prossimo
 		// Nota: previene la sovrascrittura di quelli gia' scaricati
 		if (dwlOpt->firstEpisode < 0 || dwlOpt->secondEpisode < 0 || dwlOpt->secondEpisode - dwlOpt->firstEpisode < 0) {
-			printf(ANSI_COLOR_RED "Errore durante il recupero delle informazioni per: %s\n" ANSI_COLOR_RESET, lib->libData[i]);
+			printf(ANSI_COLOR_RED "Errore durante il recupero delle informazioni per: " ANSI_COLOR_YELLOW "%s\n" ANSI_COLOR_RESET, lib->libData[i]);
 			continue;
 		}
 
@@ -248,23 +235,21 @@ void CheckForUpdatesRoutine () {
 }
 
 library *getLibrary () {
-	// "liner" verra' sovrascritto con il numero esatto di righe, che corrisponde
+	// "libLine" verra' sovrascritto con il numero esatto di righe, che corrisponde
 	// al numero di file presenti, ovvero al numero di preferiti esistenti
-	const char *appdata = getenv("APPDATA");
-
 	library *lib = (library*) calloc(1, sizeof(library));
 	if (lib == NULL) {
 		perror("calloc");
 		_exit(2);
 	}
 
-	lib->summaryPath = (char *) calloc(strlen(appdata) + 50, sizeof(char));
+	lib->summaryPath = (char *) calloc(strlen(APPDATA) + 50, sizeof(char));
 	if (lib->summaryPath == NULL) {
 		perror("calloc");
 		_exit(-2);
 	}
 
-	sprintf(lib->summaryPath, "%s\\AniLoader\\_data.summary", appdata);
+	sprintf(lib->summaryPath, "%s\\AniLoader\\_data.summary", APPDATA);
 
 	lib->libLine = 0;
 	lib->libData = createMatrixByEscapeCharacter(extractInMemoryFromFile(lib->summaryPath, false), "\n", &lib->libLine);
@@ -288,7 +273,7 @@ void printLibrary () {
 			// Spazio aggiuntivo per allineamento
 			if (lib->libLine > 9 && i < 10)
 				printf(" ");
-			
+
 			printf(ANSI_COLOR_YELLOW "%d" ANSI_COLOR_RESET "] %s\n", i, lib->libData[i]);
 		}
 	}
@@ -335,7 +320,7 @@ int libraryOption () {
 
 		// Dopo lo scanf(), intercetto il '\n' che rimane in memoria per prevenire errori nella ricerca
 		getchar();
-		
+
 		// L'utente non vuole piu' eliminare preferiti
 		if (toDel == -1)
 			return 0;
@@ -343,7 +328,7 @@ int libraryOption () {
 		// Aggiornamento del file .cfu
 		// Per comodita', delete into recreate
 		delLibrary(lib, toDel);
-		
+
 		// Se line = 1 e sono qui, significa che ora il file e' vuoto, esco per evitare crash
 		if (lib->libLine == 1) {
 			system(clearScreen);
@@ -358,8 +343,6 @@ int libraryOption () {
 }
 
 void delLibrary(library *lib, int toDel) {
-	const char *appdata = getenv("APPDATA");
-
 	remove(lib->summaryPath);
 	FILE *f = fopen(lib->summaryPath, "w");
 
@@ -367,16 +350,16 @@ void delLibrary(library *lib, int toDel) {
 		if (i != toDel)
 			fprintf(f, "%s.cfu\n", lib->libData[i]);
 	}
-		
+
 	fclose(f);
-		
-	char *delFile = (char *) calloc(strlen(appdata) + 50, sizeof(char));
+
+	char *delFile = (char *) calloc(strlen(APPDATA) + 50, sizeof(char));
 	if (delFile == NULL) {
 		perror("calloc");
 		_exit(-2);
 	}
 
-	sprintf(delFile, "%s\\AniLoader\\%s.cfu", appdata, lib->libData[toDel]);
+	sprintf(delFile, "%s\\AniLoader\\%s.cfu", APPDATA, lib->libData[toDel]);
 	remove(delFile);
 
 	free(delFile);

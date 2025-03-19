@@ -64,7 +64,7 @@ char *extractInMemoryFromFile (char *searchFilePath, bool del) {
 
 	// Chiusura ed eliminazione
 	fclose(search);
-	
+
 	// Controllo per l'eliminazione del file, aggiunto per CFU
 	if (del)
 		remove(searchFilePath);

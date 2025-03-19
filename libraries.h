@@ -14,7 +14,7 @@
 
 #define clearScreen "cls"
 #define BPATH "C:/Users/"
-#define URL "https://www.animeworld.so"
+#define URL "https://www.animeworld.ac"
 #define serverID "data-name=\"9\">AnimeWorld Server"
 #define serverNumber "9"
 
@@ -31,8 +31,9 @@
 
 // COOKIE SECTION!
 #define APPDATA getenv("APPDATA")
+#define USERAGENT "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/42.0.2311.135 Safari/537.36 Edge/12.246"
 #define COOKIEFILE "__cookies.cookie"
-#define COOKIESCRIPT_FORMAT "--cookie-jar \"%s\\AniLoader\\" COOKIEFILE "\" --cookie \"%s\\AniLoader\\" COOKIEFILE "\""
+#define COOKIESCRIPT_FORMAT "-A \" USERAGENT \" --cookie-jar \"%s\\AniLoader\\" COOKIEFILE "\" --cookie \"%s\\AniLoader\\" COOKIEFILE "\""
 #define INIT_COOKIESCRIPT(buffer, appdata) snprintf(buffer, 1024, COOKIESCRIPT_FORMAT, appdata, appdata)
 
 // Variabile globale che contiene tutto lo script di COOKIESCRIPT, calcolato una volta!

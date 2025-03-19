@@ -49,7 +49,7 @@ bool generateCookieFile () {
 // utilizzata per calcolare una volta soltanto tutto il papiro da passare al comando
 void cookieInitialization() {
 	// Allocazione dinamica della memoria per il comando
-	COOKIECMD = (char*) calloc(1024, sizeof(char));
+	COOKIECMD = (char *) calloc(1024, sizeof(char));
 	if (COOKIECMD == NULL) {
 		fprintf(stderr, "Errore nell'allocazione della memoria.\n");
 		exit(1);
@@ -64,8 +64,8 @@ void starting () {
 	printf("########################################################\n");
 	printf("#                                                      #\n");
 	printf("#                      " ANSI_COLOR_GREEN "Ani-Loader" ANSI_COLOR_RESET "                      #\n");
-	printf("#                       v. 1.8.0                       #\n");
-	printf("#                      08/01/2025                      #\n");
+	printf("#                       v. 1.8.1                       #\n");
+	printf("#                      19/03/2025                      #\n");
 	printf("#                                                      #\n");
 	printf("#            </>     - " ANSI_COLOR_GREEN "By Alchyon" ANSI_COLOR_RESET " -     </>            #\n");
 	printf("#     " ANSI_COLOR_CYAN "GitHub" ANSI_COLOR_RESET ": " ANSI_COLOR_CYAN "https://github.com/Alchyon/AniLoader" ANSI_COLOR_RESET "     #\n");
@@ -98,15 +98,15 @@ void optionMenu () {
 	switch (option) {
 		case '1':	changelog();
 					break;
-		
+
 		case '2':	libraryOption();
 					break;
-		
+
 		case '3':	printf(ANSI_COLOR_YELLOW "Controllo aggiornamenti in corso...\n" ANSI_COLOR_RESET);
 					CheckForUpdatesRoutine();
 					printf(ANSI_COLOR_GREEN "Aggiornamento completato.\n" ANSI_COLOR_RESET);
 					break;
-		
+
 		case 27:	exit(0);
 	}
 
@@ -457,7 +457,7 @@ char *getPageLink (char *redirectContent) {
 	char *token = strtok(redirectContent, " ");
 	while (token != NULL) {
 		token = strtok(NULL, " ");
-		
+
 		if (token != NULL)
 			strcpy(momentCopy, token);
 	}
@@ -634,7 +634,7 @@ char **getAnimeStatus(char **pageDataResult, int line, int startingPoint) {
 				strcpy(data[1], "droppato");
 			else
 				strcpy(data[1], "sconosciuto");
-			
+
 			break;
 		}
 	}
@@ -833,7 +833,7 @@ downloadOption *downloadMenu (char *name, int numberOfEpisode, char **animeStatu
 					case '*':	case '?':	case '\"':
 					case '<':	case '>':	case '|':
 					case '{':	case '}':	case '~':
-					
+
 						printf(ANSI_COLOR_RED "\nErrore!\n" ANSI_COLOR_RESET);
 						printf("Il nome della directory contiene dei caratteri non ammessi, ripristino la cartella di default!\n");
 						system("pause");
@@ -853,8 +853,8 @@ downloadOption *downloadMenu (char *name, int numberOfEpisode, char **animeStatu
 // Funzioni che servono a ottenere informazioni e dati necessari al solo download
 void downloadPrepare (animeEpisodeData *lastData, downloadOption *settings, char *pageDirectLink, char *name) {
 	// Correggo il directLink eliminando l'estensione
-	int i;
-	for (i = strlen(pageDirectLink); pageDirectLink[i] != '/'; i--);
+	int i = strlen(pageDirectLink);
+	for (; pageDirectLink[i] != '/'; i--);
 	pageDirectLink[i + 1] = '\0';
 
 	// Inizio switch per processo download
@@ -869,13 +869,13 @@ void downloadPrepare (animeEpisodeData *lastData, downloadOption *settings, char
 	switch (settings->option) {
 		case 0:	printf(ANSI_COLOR_GREEN "Download in corso di " ANSI_COLOR_CYAN "%d" ANSI_COLOR_GREEN " episodi di \"" ANSI_COLOR_CYAN "%s" ANSI_COLOR_GREEN "\"" ANSI_COLOR_RESET "\n", lastData->numberOfEpisode, name);
 				break;
-		
+
 		case 1:	printf(ANSI_COLOR_GREEN "Download in corso dell'episodio " ANSI_COLOR_CYAN "%d" ANSI_COLOR_GREEN " di \"" ANSI_COLOR_CYAN "%s" ANSI_COLOR_GREEN "\"" ANSI_COLOR_RESET "\n", settings->firstEpisode + 1, name);
 				break;
-		
+
 		case 2:	printf(ANSI_COLOR_GREEN "Download in corso di " ANSI_COLOR_CYAN "%d" ANSI_COLOR_GREEN " episodi [" ANSI_COLOR_CYAN "%d" ANSI_COLOR_GREEN " -> " ANSI_COLOR_CYAN "%d" ANSI_COLOR_GREEN "] di \"" ANSI_COLOR_CYAN "%s" ANSI_COLOR_GREEN "\"" ANSI_COLOR_RESET "\n", settings->secondEpisode - settings->firstEpisode, settings->firstEpisode + 1, settings->secondEpisode, name);
 				break;
-		
+
 		case 3:	system(clearScreen);
 
 				// Sistemo nome e directory finche' ho a disposizione l'accesso ai dati
@@ -918,13 +918,13 @@ void createDirectory (downloadOption *settings, char *name) {
 			perror("calloc");
 			_exit(-2);
 	}
-	
+
 	// Impostazione della directory, funzione mkdir()
 	if (strlen(settings->downloadDirectory) != 0)
 		sprintf(dirPath, "%s", settings->downloadDirectory);
 	else
 		sprintf(dirPath, "%s%s", createPath(""), fixDirectoryName(name));
-	
+
 	// Esecuzione e free()
 	mkdir(dirPath);
 	free(dirPath);
