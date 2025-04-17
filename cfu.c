@@ -67,10 +67,10 @@ void addOnLoad (char *name, char *pageDirectLink, char *ext, char *downloadDirec
 void CheckForUpdatesRoutine () {
 	// Steps:
 	//	1:	Read summary (getLibrary())
-	//	2:  Variables assignments for step 3 (getLibrary())
+	//	2: 	Variables assignments for step 3 (getLibrary())
 	//	3:	foreach summaryData entries
 	//	4:	calls to function to download, based on data
-	//  5:	update .cfu file
+	//	5:	update .cfu file
 
 	// #1 & #2
 	library *lib = getLibrary();

@@ -64,8 +64,8 @@ void starting () {
 	printf("########################################################\n");
 	printf("#                                                      #\n");
 	printf("#                      " ANSI_COLOR_GREEN "Ani-Loader" ANSI_COLOR_RESET "                      #\n");
-	printf("#                       v. 1.8.1                       #\n");
-	printf("#                      19/03/2025                      #\n");
+	printf("#                       v. 1.8.2                       #\n");
+	printf("#                      17/04/2025                      #\n");
 	printf("#                                                      #\n");
 	printf("#            </>     - " ANSI_COLOR_GREEN "By Alchyon" ANSI_COLOR_RESET " -     </>            #\n");
 	printf("#     " ANSI_COLOR_CYAN "GitHub" ANSI_COLOR_RESET ": " ANSI_COLOR_CYAN "https://github.com/Alchyon/AniLoader" ANSI_COLOR_RESET "     #\n");
@@ -513,9 +513,22 @@ animeEpisodeData *getEpisodeExtension (char **pageDataResult, int line) {
 
 	// Server non trovato
 	if (lineCounter == line) {
+		// Si controlla lo stato, se non e' ancora stato rilasciato, allora non si tratta
+		// di un errore ma solo di una mancanza di episodi
+		char **animeStatus = getAnimeStatus(pageDataResult, line, 200);
 		system(clearScreen);
-		printf(ANSI_COLOR_YELLOW "Episodi disponibili solo su server esterni o su VVVVID!" ANSI_COLOR_RESET "\n");
-		printf(ANSI_COLOR_RED "Errore: impossibile scaricare attraverso questo programma..." ANSI_COLOR_RESET "\n");
+
+		if (strcmp(animeStatus[1], "non rilasciato") == 0) {
+			printf(ANSI_COLOR_YELLOW "Anime non ancora rilasciato!" ANSI_COLOR_RESET "\n");
+			printf("La data di rilascio prevista e': " ANSI_COLOR_CYAN "%s" ANSI_COLOR_RESET ".\n", animeStatus[2]);
+			printf("Sono previsti " ANSI_COLOR_CYAN "%s" ANSI_COLOR_RESET " episodi.\n", animeStatus[0]);
+		}
+		else
+		{
+			printf(ANSI_COLOR_YELLOW "Stato dell'anime sconosciuto, impossibile recuperare informazioni in merito!" ANSI_COLOR_RESET "\n");
+			printf(ANSI_COLOR_RED "Errore: impossibile scaricare attraverso questo programma..." ANSI_COLOR_RESET "\n");
+		}
+
 		printf("Premere un tasto qualsiasi per riavviare il programma...");
 		getch();
 
@@ -633,12 +646,13 @@ char **getAnimeStatus(char **pageDataResult, int line, int startingPoint) {
 			else if (strstr(pageDataResult[i + 4], "Droppato"))
 				strcpy(data[1], "droppato");
 			else
+				// default
 				strcpy(data[1], "sconosciuto");
 
 			break;
 		}
 	}
-	
+
 	return data;
 }
 
