@@ -28,6 +28,20 @@ typedef struct {
 } downloadOption;
 
 typedef struct {
+	// Percorso del singolo file contenente le informazioni
+	char *cfuPath;
+
+	// Contenuto di cfuPath
+	char **content;
+
+	// Numero di righe
+	int dataLine;
+
+	// Numero di anime
+	int numberOfAnime;
+} cfuFile;
+
+typedef struct {
 	// Percorso del file contenente l'elenco dei preferiti
 	char *summaryPath;
 

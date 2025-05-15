@@ -25,7 +25,7 @@ char **getAnimeStatus(char**, int, int);
 
 // Funzioni per il download
 downloadOption *downloadMenu(char *, int, char **);
-void downloadPrepare(animeEpisodeData *, downloadOption *, char *, char *);
+void downloadPrepare(animeEpisodeData *, downloadOption *, char *, char *, cfuFile *);
 void createDirectory(downloadOption *, char *);
 char *getDirectEpisodeDownloadLink(char *, char *);
 void downloadFile(animeEpisodeData *, downloadOption *, char *, char *, int);

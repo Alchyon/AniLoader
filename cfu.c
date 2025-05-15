@@ -1,5 +1,5 @@
 // This file will be used only for CFU (Check for Updates) codes.
-// Il will keep everything inside for dividing the main code from the "DLC".
+// It will keep everything inside for dividing the main code from the "DLC".
 
 #include "libraries.h"
 #include "function.h"
@@ -18,7 +18,7 @@ void addOnLoad (char *name, char *pageDirectLink, char *ext, char *downloadDirec
 	char *fileName = (char *) calloc(strlen(APPDATA) + strlen(name) + 30, sizeof(char));
 	if (fileName == NULL) {
 		perror("calloc");
-		_exit(-2);
+		exit(2);
 	}
 
 	// Creazione stringa per il file dell'anime corrente
@@ -36,7 +36,7 @@ void addOnLoad (char *name, char *pageDirectLink, char *ext, char *downloadDirec
 		main();
 	}
 
-	// Se sono qui significa che il file NON esiste e che quindi puo' essere creato e scritto
+	// Se il controllo viene superato significa che il file NON esiste e che quindi puo' essere creato e scritto
 	// Step 2:
 	//	- Creazione del file per CFU
 	f = fopen(fileName, "w");
@@ -69,8 +69,8 @@ void CheckForUpdatesRoutine () {
 	//	1:	Read summary (getLibrary())
 	//	2: 	Variables assignments for step 3 (getLibrary())
 	//	3:	foreach summaryData entries
-	//	4:	calls to function to download, based on data
-	//	5:	update .cfu file
+	//	4:	creation cfuFile struct
+	//	5:	calls to function to download, based on data
 
 	// #1 & #2
 	library *lib = getLibrary();
@@ -82,13 +82,13 @@ void CheckForUpdatesRoutine () {
 		char *filePath = (char *) calloc(strlen(lib->libData[i]) + strlen(APPDATA) + 50, sizeof(char));
 		if (filePath == NULL) {
 			perror("calloc");
-			_exit(2);
+			exit(2);
 		}
 
 		// Path del singolo file, verra' resettato ad ogni iterazione, .cfu aggiunto hardcoded
 		sprintf(filePath, "%s\\AniLoader\\%s.cfu", APPDATA, lib->libData[i]);
 
-		// Considerato che extractInMemoryFromFile() ha una _exit() in caso di file non esistente, verifico adesso che
+		// Considerato che extractInMemoryFromFile() ha una exit() in caso di file non esistente, verifico adesso che
 		// esista e chiamo un continue in caso negativo
 		FILE *f = fopen(filePath, "r");
 		if (f == NULL)
@@ -102,22 +102,22 @@ void CheckForUpdatesRoutine () {
 		// Ora partono le chiamate al main code per riutilizzare le funzioni, alcune strutture verranno ricreate in maniera
 		// automatica in quanto i parametri sono gia' presenti nel file di salvataggio (... .cfu)
 
-		// Creo il comando per scaricare la pagina corretta e lo eseguo
+		// Creazione comando per scaricare la pagina corretta ed esecuzione
 		downloadCorrectPage(fileAnimeData[2]);
 		char *path = createPath("page.txt");
 
-		// Ottengo il contenuto della pagina dal file ed elimino lo stesso
+		// Contenuto della pagina dal file ed eliminazione dello stesso
 		pageContent = extractInMemoryFromFile(path, true);
 		free(path);
 
-		// Trasformo l'array in una matrice
+		// Trasforma l'array in una matrice
 		int line = 0;
 		char **pageDataResult = createMatrixByEscapeCharacter(pageContent, "\n", &line);
 
-		// Ottengo una struttura contenente le estensioni dei singoli episodi e il numero delle stesse
+		// Struttura contenente le estensioni dei singoli episodi e il loro numero
 		animeEpisodeData *lastData = getEpisodeExtension(pageDataResult, line);
 
-		// Ottengo lo stato, verra' utilizzato per decidere se l'anime e' da ritenersi completato o meno
+		// Stato dell'anime, verra' utilizzato per decidere se l'anime e' da ritenersi completato o meno
 		char **animeStatus = getAnimeStatus(pageDataResult, line, lastData->rLine);
 		free(pageDataResult);
 
@@ -125,7 +125,7 @@ void CheckForUpdatesRoutine () {
 			// Errore, nessun episodio trovato
 			// Skippo questo anime e passo a quello dopo
 			continue;
-		
+
 		if (lastData->numberOfEpisode == 0) {
 			// Server trovato ma nessun episodio disponibile
 			printf(ANSI_COLOR_RED "Errore durante il recupero delle informazioni per: %s\n" ANSI_COLOR_RESET, lib->libData[i]);
@@ -155,7 +155,7 @@ void CheckForUpdatesRoutine () {
 		downloadOption *dwlOpt = (downloadOption *) malloc(sizeof(downloadOption) + 1);
 		if (dwlOpt == NULL) {
 			perror("malloc");
-			_exit(-2);
+			exit(2);
 		}
 
 		// Controllo valori degli episodi, in caso vi siano valori negativi, allora errore e skip al prossimo
@@ -187,14 +187,14 @@ void CheckForUpdatesRoutine () {
 		dwlOpt->nameEpisode = (char *) malloc(sizeof(char) * 101);
 		if (dwlOpt->nameEpisode == NULL) {
 			perror("malloc");
-			_exit(-2);
+			exit(2);
 		}
 
 		// Alloco il puntatore della directory
 		dwlOpt->downloadDirectory = (char *) malloc(sizeof(char) * 501);
 		if (dwlOpt->downloadDirectory == NULL) {
 			perror("malloc");
-			_exit(-2);
+			exit(2);
 		}
 
 		// Directory
@@ -203,50 +203,57 @@ void CheckForUpdatesRoutine () {
 		dwlOpt->nameEpisodeChange = true;
 		strcpy(dwlOpt->nameEpisode, fileAnimeData[5]);
 
-		// Devo crearmi una copia per fileAnimeData[2] perchè downloadPrepare() la sovrascrive
-		char *copy = (char *) calloc(strlen(fileAnimeData[2]) + 1, sizeof(char));
-		if (copy == NULL) {
-			perror("calloc");
-			_exit(-2);
+		// #4: struct dwlOpt pronta, creazione struct cfuFile
+		cfuFile *dataEpisodeCfu = (cfuFile *) malloc(sizeof(cfuFile));
+		if (dataEpisodeCfu == NULL) {
+			perror("malloc");
+			exit(-2);
 		}
-		strcpy(copy, fileAnimeData[2]);
 
-		// #4: struct pronta, chiamata a funzione e terminazione del codice
+		dataEpisodeCfu->cfuPath = filePath;
+		dataEpisodeCfu->content = fileAnimeData;
+		dataEpisodeCfu->dataLine = dataLine;
+
+		// #5: struct pronta, chiamata a funzione e terminazione del codice
 		// 	   il printf() serve solo a migliorare l'output grafico
 		printf("\n");
-		downloadPrepare(lastData, dwlOpt, copy, lib->libData[i]);
+		downloadPrepare(lastData, dwlOpt, strdup(fileAnimeData[2]), lib->libData[i], dataEpisodeCfu);
 		printf("\n");
-
-		// #5: Aggiornamento del file .cfu
-		// Per comodita', delete into recreate
-		remove(filePath);
-		f = fopen(filePath, "w");
-
-		fprintf(f, "6\n%s\n%s\n%d\n%s\n%s\n", fileAnimeData[1], fileAnimeData[2], lastData->numberOfEpisode, fileAnimeData[4], fileAnimeData[5]);
-		fclose(f);
 
 		free(filePath);
 		free(fileAnimeData);
 		free(dwlOpt);
-		free(copy);
 	}
 
 	free(lib);
 }
 
+void updateCfuFile (cfuFile *cfu, int numberOfEpisode) {
+	FILE *f;
+
+	// Eliminazione del file e successiva creazione, piu' veloce di editare una porzione di testo precisa
+	// e usare puntatori alle righe
+	remove(cfu->cfuPath);
+	f = fopen(cfu->cfuPath, "w");
+
+	// Scrittura delle informazioni richieste nel file .cfu
+	fprintf(f, "%d\n%s\n%s\n%d\n%s\n%s\n", cfu->dataLine, cfu->content[1], cfu->content[2], numberOfEpisode, cfu->content[4], cfu->content[5]);
+	fclose(f);
+}
+
 library *getLibrary () {
 	// "libLine" verra' sovrascritto con il numero esatto di righe, che corrisponde
 	// al numero di file presenti, ovvero al numero di preferiti esistenti
-	library *lib = (library*) calloc(1, sizeof(library));
+	library *lib = (library *) calloc(1, sizeof(library));
 	if (lib == NULL) {
 		perror("calloc");
-		_exit(2);
+		exit(2);
 	}
 
 	lib->summaryPath = (char *) calloc(strlen(APPDATA) + 50, sizeof(char));
 	if (lib->summaryPath == NULL) {
 		perror("calloc");
-		_exit(-2);
+		exit(2);
 	}
 
 	sprintf(lib->summaryPath, "%s\\AniLoader\\_data.summary", APPDATA);
@@ -254,11 +261,11 @@ library *getLibrary () {
 	lib->libLine = 0;
 	lib->libData = createMatrixByEscapeCharacter(extractInMemoryFromFile(lib->summaryPath, false), "\n", &lib->libLine);
 
-	// Elimino .cfu dalla fine di ogni file
+	// Elimina .cfu dalla fine di ogni file
 	for (int i = lib->libLine; i != 0; lib->libData[--i][strlen(lib->libData[i]) - 4] = '\0');
 //	for (int i = 0; i < lib->libLine; i++)
 //		lib->libData[i][strlen(lib->libData[i]) - 4] = '\0';
-	
+
 	return lib;
 }
 
@@ -270,25 +277,22 @@ void printLibrary () {
 	else {
 		printf(ANSI_COLOR_GREEN "Elenco anime preferiti:\n\n" ANSI_COLOR_RESET);
 		for (int i = 0; i < lib->libLine; i++) {
-			// Spazio aggiuntivo per allineamento
-			if (lib->libLine > 9 && i < 10)
-				printf(" ");
-
-			printf(ANSI_COLOR_YELLOW "%d" ANSI_COLOR_RESET "] %s\n", i, lib->libData[i]);
+			// Spazio aggiuntivo per allineamento, improbabile si arrivi alla terza cifra
+			printf(ANSI_COLOR_YELLOW "%2d" ANSI_COLOR_RESET "] %s\n", i, lib->libData[i]);
 		}
 	}
 }
 
-int libraryOption () {
+void libraryOption () {
 	// Mi istanzio una libreria
 	library *lib = getLibrary();
 
 	// Stampo la libreria
 	printLibrary();
-	
+
 	// Nessun anime tra i preferiti
 	if (lib->libLine == 0)
-		return 0;
+		return;
 
 	char choice;
 	do {
@@ -300,7 +304,7 @@ int libraryOption () {
 	// Evito un'annidamento escludendo a priori la possibilita' di N
 	if (choice == 'N') {
 		printf("\n");
-		return 0;
+		return;
 	}
 
 	// Quando so chi eliminare, chiamo la funzione che mi elimina quell'elemento
@@ -323,7 +327,7 @@ int libraryOption () {
 
 		// L'utente non vuole piu' eliminare preferiti
 		if (toDel == -1)
-			return 0;
+			return;
 
 		// Aggiornamento del file .cfu
 		// Per comodita', delete into recreate
@@ -333,13 +337,13 @@ int libraryOption () {
 		if (lib->libLine == 1) {
 			system(clearScreen);
 			printf(ANSI_COLOR_GREEN "Tutti i preferiti sono stati cancellati.\n" ANSI_COLOR_RESET);
-			return 0;
+			return;
 		}
 
 		free(lib);
 	}
 
-	return 0;
+	return;
 }
 
 void delLibrary(library *lib, int toDel) {
@@ -356,7 +360,7 @@ void delLibrary(library *lib, int toDel) {
 	char *delFile = (char *) calloc(strlen(APPDATA) + 50, sizeof(char));
 	if (delFile == NULL) {
 		perror("calloc");
-		_exit(-2);
+		exit(2);
 	}
 
 	sprintf(delFile, "%s\\AniLoader\\%s.cfu", APPDATA, lib->libData[toDel]);

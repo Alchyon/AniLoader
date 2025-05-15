@@ -15,7 +15,7 @@ long int findSize (char *file_name) {
 	// Controllo se il file esiste
 	if (fp == NULL) {
 		perror("fopen");
-		_exit(-1);
+		exit(-1);
 	}
 
 	// Metto il puntatore alla fine del file
@@ -34,7 +34,7 @@ char *createPath (char *string) {
 	char *path = (char *) calloc(sizeof(strlen(string)) + 100, sizeof(char));
 	if (path == NULL) {
 		perror("calloc");
-		_exit(-2);
+		exit(2);
 	}
 
 	// Creazione path
@@ -49,14 +49,14 @@ char *extractInMemoryFromFile (char *searchFilePath, bool del) {
 	char *searchFileData = (char *) calloc(size + 10, sizeof(char));
 	if (searchFileData == NULL) {
 		perror("calloc");
-		_exit(-2);
+		exit(2);
 	}
 
 	// Apertura file
 	FILE *search = fopen(searchFilePath, "r");
 	if (search == NULL) {
 		perror("fopen");
-		_exit(-2);
+		exit(2);
 	}
 
 	// Lettura dell'intero file
@@ -79,7 +79,7 @@ char **createMatrixByEscapeCharacter (char *string, char *escape, int *line) {
 	char **searchDataResult = (char **) malloc(sizeof(char *) * strlen(string));
 	if (searchDataResult == NULL) {
 		perror("malloc");
-		_exit(-2);
+		exit(2);
 	}
 
 	// Effettuo la copia token per token
@@ -90,7 +90,7 @@ char **createMatrixByEscapeCharacter (char *string, char *escape, int *line) {
 		searchDataResult[posix] = (char *) calloc(strlen(token) + 1, sizeof(char));
 		if (searchDataResult[posix] == NULL) {
 			perror("calloc");
-			_exit(-2);
+			exit(2);
 		}
 
 		strcpy(searchDataResult[posix], token);
@@ -123,4 +123,21 @@ char *fixDirectoryName (char *name) {
 	}
 
 	return fix;
+}
+
+// # Funzioni di libreria aggiunte manualmente
+char *strndup(const char *s, size_t n) {
+	char *p;
+	size_t n1;
+
+	for (n1 = 0; n1 < n && s[n1] != '\0'; n1++)
+		continue;
+
+	p = malloc(n + 1);
+	if (p != NULL) {
+		memcpy(p, s, n1);
+		p[n1] = '\0';
+	}
+
+	return p;
 }

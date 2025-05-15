@@ -9,14 +9,14 @@ void __attribute__ ((constructor)) premain() {
 		printf("Programma non compatibile con il sistema operativo.\n");
 		printf("Supportati: Windows 10, Windows 11.\n");
 		system("pause");
-		_exit(-3);
+		exit(-3);
 	#endif
 
 	// Creazione della cartella "AniLoader" in "... AppData/Roaming" se non pre-esistente.
 	char *appdataFolder = (char *) calloc(strlen(APPDATA) + 20, sizeof(char));
 	if (appdataFolder == NULL) {
 		perror("calloc");
-		_exit(-2);
+		exit(2);
 	}
 
 	sprintf(appdataFolder, "%s/AniLoader", APPDATA);
@@ -26,7 +26,7 @@ void __attribute__ ((constructor)) premain() {
 	if (generateCookieFile() == false) {
 		printf("Impossibile generare un file di cookie, server non raggiungibile o mancanza di permessi di scrittura\n");
 		system("pause");
-		_exit(0);
+		exit(4);
 	}
 }
 
@@ -36,10 +36,10 @@ int main () {
 	// Menu' iniziale
 	optionMenu();
 
-	// Inserisco il nome da cercare
+	// Inserimento nome per ricerca
 	char *name = insertName();
 
-	// Variabili usate nella parte sottostante per il funzionamento base del programma, dichiarate qui per questioni di scope
+	// Variabili utilizzate nella parte sottostante per il funzionamento base del programma, dichiarate qui per questioni di scope
 	char *path;
 	char *searchData;
 	int line = 0;
@@ -60,7 +60,7 @@ int main () {
 	line = 0;
 	searchDataResult = createMatrixByEscapeCharacter(searchData, "\n", &line);
 	free(searchData);
-		
+
 	// Cerco il div contenente gli anime
 	divFound = searchAnimeDiv(searchDataResult, line);
 	if (divFound == -1) {
@@ -145,8 +145,8 @@ int main () {
 	printf("Download in corso con le impostazioni fornite, questo processo potrebbe richiedere molto tempo.\n");
 	printf("Non chiudere il programma o il download verra' interrotto e sara' irrecuperabile.\n");
 	printf(ANSI_COLOR_GREEN "Avvio. . ." ANSI_COLOR_RESET "\n\n");
-	downloadPrepare(lastData, settings, pageDirectLink, baseData->correctAnimeName[selected]);
-	
+	downloadPrepare(lastData, settings, pageDirectLink, baseData->correctAnimeName[selected], NULL);
+
 	printf(ANSI_COLOR_GREEN "\nDownload completato!\n" ANSI_COLOR_RESET);
 	printf("Grazie per aver usato AniLoader, premi INVIO per chiudere il programma...");
 	while (divFound = getch() != 13 && divFound != EOF);
